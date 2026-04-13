@@ -4,7 +4,7 @@ const { getOpenAiKey, getOpenAiContext } = require('./store');
 const { jsonrepair } = require('jsonrepair');
 const { logError } = require('./logger');
 
-const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_MODEL = 'gpt-4o';
 
 function getClient() {
   const apiKey = getOpenAiKey();

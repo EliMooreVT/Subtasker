@@ -33,21 +33,22 @@ Create a production renderer bundle:
 npm run build
 ```
 
-Generate installable artifacts (AppImage/DMG/NSIS) with Electron Builder:
+Generate installable artifacts with Electron Builder:
 
 ```bash
-npm run package
+npm run package        # auto-detects current platform
+npm run package:mac    # macOS DMG (x64 + arm64 universal)
 ```
 
 Outputs land in the `release/` directory.
 
-### Install with AppImage helper (Linux)
+### Install on macOS
 
 ```bash
-./scripts/install-appimage.sh
+./scripts/install-mac.sh
 ```
 
-The helper runs `npm run package`, copies the newest `Subtasker-*.AppImage` into `~/.local/bin/subtasker.AppImage`, and registers a desktop entry at `~/.local/share/applications/subtasker.desktop`. Refresh your launcher cache if needed (`update-desktop-database ~/.local/share/applications`), then launch from dmenu/rofi or execute `subtasker.AppImage` directly.
+The helper runs `npm install`, builds the renderer, packages a DMG, and opens it for you to drag Subtasker into `/Applications`. Code signing is skipped for local builds — macOS may show a Gatekeeper prompt on first launch; right-click → Open to bypass it.
 
 ## First-Time Setup
 

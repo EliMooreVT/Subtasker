@@ -6,11 +6,15 @@ files:
   - package.json
 directories:
   output: release
-extraResources:
-  - from: dist
-    to: dist
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.productivity
+  # For distribution outside the App Store, set CSC_IDENTITY_AUTO_DISCOVERY=false
+  # to skip code signing during local builds.
 win:
   target: nsis
 linux:
