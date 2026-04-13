@@ -1,0 +1,519 @@
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1f2933;
+  background-color: #f5f7fb;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fb;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+}
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background: #1f2933;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  gap: 16px;
+}
+
+.sidebar header {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.task-lists {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-list-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: inherit;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.task-list-button.active,
+.task-list-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pending-indicator {
+  margin-bottom: 16px;
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.toolbar button,
+.toolbar label {
+  background: #2563eb;
+  border: none;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.toolbar button.secondary,
+.toolbar label.secondary {
+  background: #e2e8f0;
+  color: #1f2933;
+}
+
+button.secondary {
+  background: #e2e8f0;
+  color: #1f2933;
+}
+
+button.primary {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toolbar button:hover {
+  transform: translateY(-1px);
+}
+
+.toolbar input[type='text'] {
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  padding: 9px 12px;
+  flex: 1;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.content-layout {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  overflow: hidden;
+}
+
+.tasks-panel {
+  flex: 1;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 16px;
+}
+
+.task-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 8px;
+}
+
+.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  cursor: pointer;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+}
+
+.task-list-item.active {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+}
+
+.task-list-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-list-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.task-list-notes {
+  color: #475569;
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+.task-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-list-actions button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: none;
+  background: #e2e8f0;
+  color: #1f2933;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.task-list-actions button.secondary {
+  background: #f1f5f9;
+}
+
+.subtasks-panel {
+  width: 360px;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subtasks-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subtasks-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtasks-header h3 {
+  margin: 0;
+}
+
+.subtask-notes {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+.subtasks-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.subtasks-header-actions button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: none;
+  background: #e2e8f0;
+  color: #1f2933;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.subtasks-header-actions button.secondary {
+  background: #f1f5f9;
+}
+
+.subtask-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.subtask-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 14px;
+}
+
+.subtask-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subtask-content .title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtask-content .title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.subtask-content .notes {
+  color: #475569;
+  font-size: 0.85rem;
+  white-space: pre-line;
+}
+
+.subtask-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-actions button {
+  border-radius: 8px;
+  padding: 6px 10px;
+  border: none;
+  background: #e2e8f0;
+  color: #1f2933;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.subtask-actions button.secondary {
+  background: #f1f5f9;
+}
+
+.subtasks-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 12px;
+}
+
+.subtasks-footer button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.ai-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.ai-progress::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2563eb;
+  animation: ai-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ai-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.empty-state {
+  margin: auto;
+  text-align: center;
+  color: #64748b;
+  max-width: 320px;
+}
+
+.status-banner {
+  background: #e2e8f0;
+  color: #1f2933;
+  padding: 12px 16px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.status-banner.success {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.status-banner.error {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+  padding: 24px;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog h2 {
+  margin: 0;
+}
+
+.dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog textarea,
+.dialog input,
+.dialog select {
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog-actions button {
+  padding: 8px 14px;
+}
+
+.small {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.unsynced {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.preferences-dialog {
+  width: 520px;
+}
+
+.preferences-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preferences-section h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.preferences-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.preferences-key-field {
+  display: flex;
+  gap: 8px;
+}
+
+.preferences-key-field input {
+  flex: 1;
+}

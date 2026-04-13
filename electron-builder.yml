@@ -1,0 +1,17 @@
+appId: com.subtasker.desktop
+productName: Subtasker
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+directories:
+  output: release
+extraResources:
+  - from: dist
+    to: dist
+mac:
+  target: dmg
+win:
+  target: nsis
+linux:
+  target: AppImage

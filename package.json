@@ -1,0 +1,37 @@
+{
+  "name": "subtasker",
+  "version": "0.1.0",
+  "description": "Subtasker desktop app that extends Google Tasks with AI-powered subtasks.",
+  "main": "electron/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:main\"",
+    "dev:renderer": "vite --clearScreen false",
+    "dev:main": "wait-on tcp:5173 && electron .",
+    "start": "electron .",
+    "build": "vite build",
+    "package": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "google-auth-library": "^9.14.1",
+    "googleapis": "^132.0.0",
+    "jsonrepair": "^3.13.0",
+    "openai": "^4.53.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10",
+    "wait-on": "^7.2.0"
+  }
+}
