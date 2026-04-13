@@ -16,7 +16,12 @@ export interface TaskItem {
   isLocal?: boolean;
 }
 
-export type PendingOperationPayload =
+export type AiGenerationOptions = {
+  length: 'short' | 'long';
+  style: 'simple' | 'comprehensive';
+};
+
+export type PendingOperation =
   | {
       kind: 'create';
       taskId: string;
@@ -70,7 +75,7 @@ declare global {
         payload: {
           listId: string;
           task: { id: string; title: string; notes?: string; context?: string };
-          options: { length: 'short' | 'long'; style: 'simple' | 'comprehensive' };
+          options: AiGenerationOptions;
         }
       ) => Promise<{ parentTitle: string | null; subtasks: TaskItem[] }>;
       planRefine: (
@@ -78,7 +83,7 @@ declare global {
           listId: string;
           task: { id: string; title: string; notes?: string; subtasks: TaskItem[] };
           feedback: string;
-          options: { length: 'short' | 'long'; style: 'simple' | 'comprehensive' };
+          options: AiGenerationOptions;
         }
       ) => Promise<{ parentTitle: string | null; subtasks: TaskItem[] }>;
       planSplit: (
@@ -86,7 +91,7 @@ declare global {
           listId: string;
           task: { id: string; title: string; notes?: string; subtasks: TaskItem[] };
           instructions: string;
-          options: { length: 'short' | 'long'; style: 'simple' | 'comprehensive' };
+          options: AiGenerationOptions;
         }
       ) => Promise<{ parentTitle: string | null; subtasks: TaskItem[] }>;
 
@@ -94,7 +99,7 @@ declare global {
       getClientSecretPath: () => Promise<string | null>;
       getErrorLogPath: () => Promise<string>;
       applyChanges: (
-        payload: { listId: string; operations: PendingOperationPayload[] }
+        payload: { listId: string; operations: PendingOperation[] }
       ) => Promise<{ success: boolean }>;
     };
   }

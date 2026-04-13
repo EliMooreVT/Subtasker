@@ -108,44 +108,10 @@ async function deleteTask(mainWindow, listId, taskId) {
   return true;
 }
 
-async function insertSubtasks(mainWindow, listId, parentTaskId, subtasks) {
-  const client = await getTasksClient(mainWindow);
-  let previous = undefined;
-  const created = [];
-  for (const subtask of subtasks) {
-    const response = await client.tasks.insert({
-      tasklist: listId,
-      parent: parentTaskId,
-      requestBody: {
-        title: subtask.title,
-        notes: subtask.notes
-      },
-      previous
-    });
-    previous = response.data.id;
-    created.push(toTaskItem(response.data));
-  }
-  return created;
-}
-
-async function replaceSubtasks(mainWindow, listId, parentTaskId, existingIds, newSubtasks) {
-  const client = await getTasksClient(mainWindow);
-  for (const subtaskId of existingIds) {
-    try {
-      await client.tasks.delete({ tasklist: listId, task: subtaskId });
-    } catch (error) {
-      console.error('Failed to delete subtask', subtaskId, error);
-    }
-  }
-  return insertSubtasks(mainWindow, listId, parentTaskId, newSubtasks);
-}
-
 module.exports = {
   listTaskLists,
   listTasks,
   createTask,
   updateTask,
-  deleteTask,
-  insertSubtasks,
-  replaceSubtasks
+  deleteTask
 };
