@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { TaskItem } from './types/global';
+import type { AiGenerationOptions, PendingOperation, TaskItem } from './types/global';
 
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
 
@@ -62,34 +62,6 @@ const FALLBACK_GUIDING_QUESTIONS = [
   'What context or constraints should we keep in mind?',
   'What is the first checkpoint you need to reach?'
 ];
-
-type AiGenerationOptions = {
-  length: 'short' | 'long';
-  style: 'simple' | 'comprehensive';
-};
-
-type PendingOperation =
-  | {
-      kind: 'create';
-      taskId: string;
-      listId: string;
-      parentId: string | null;
-      title: string;
-      notes: string;
-      due?: string | null;
-      status: 'needsAction' | 'completed';
-    }
-  | {
-      kind: 'update';
-      taskId: string;
-      listId: string;
-      updates: TaskUpdate;
-    }
-  | {
-      kind: 'delete';
-      taskId: string;
-      listId: string;
-    };
 
 function prepareDraft(task?: TaskItem): TaskDraft {
   return {
@@ -194,6 +166,38 @@ const GuidingQuestions: React.FC<{ questions: string[] }> = ({ questions }) => (
       ))}
     </ul>
   </div>
+);
+
+const AiOptionsFields: React.FC<{
+  options: AiGenerationOptions;
+  onChange: (updates: Partial<AiGenerationOptions>) => void;
+}> = ({ options, onChange }) => (
+  <>
+    <div className="preferences-field">
+      <label>
+        Task Size
+        <select
+          value={options.length}
+          onChange={(e) => onChange({ length: e.target.value as AiGenerationOptions['length'] })}
+        >
+          <option value="short">Short (~5 subtasks)</option>
+          <option value="long">Long (~10 subtasks)</option>
+        </select>
+      </label>
+    </div>
+    <div className="preferences-field">
+      <label>
+        Style
+        <select
+          value={options.style}
+          onChange={(e) => onChange({ style: e.target.value as AiGenerationOptions['style'] })}
+        >
+          <option value="simple">Simple, direct steps</option>
+          <option value="comprehensive">Comprehensive, with review notes</option>
+        </select>
+      </label>
+    </div>
+  </>
 );
 
 const StatusBanner: React.FC<{ status: StatusState; onClear: () => void }> = ({ status, onClear }) => {
@@ -330,24 +334,7 @@ const ExpandDialog: React.FC<{
             placeholder="Drop in anything the AI should know before expanding."
             onChange={(event) => setContext(event.target.value)}
           />
-          <div className="preferences-field">
-            <label>
-              Task Size
-              <select value={options.length} onChange={(event) => handleOptionsChange({ length: event.target.value as AiGenerationOptions['length'] })}>
-                <option value="short">Short (~5 subtasks)</option>
-                <option value="long">Long (~10 subtasks)</option>
-              </select>
-            </label>
-          </div>
-          <div className="preferences-field">
-            <label>
-              Style
-              <select value={options.style} onChange={(event) => handleOptionsChange({ style: event.target.value as AiGenerationOptions['style'] })}>
-                <option value="simple">Simple, direct steps</option>
-                <option value="comprehensive">Comprehensive, with review notes</option>
-              </select>
-            </label>
-          </div>
+          <AiOptionsFields options={options} onChange={handleOptionsChange} />
           <div className="dialog-actions">
             <button type="button" className="secondary" onClick={onClose}>
               Cancel
@@ -405,24 +392,7 @@ const RefineDialog: React.FC<{
             onChange={(event) => setFeedback(event.target.value)}
             required
           />
-          <div className="preferences-field">
-            <label>
-              Task Size
-              <select value={options.length} onChange={(event) => handleOptionsChange({ length: event.target.value as AiGenerationOptions['length'] })}>
-                <option value="short">Short (~5 subtasks)</option>
-                <option value="long">Long (~10 subtasks)</option>
-              </select>
-            </label>
-          </div>
-          <div className="preferences-field">
-            <label>
-              Style
-              <select value={options.style} onChange={(event) => handleOptionsChange({ style: event.target.value as AiGenerationOptions['style'] })}>
-                <option value="simple">Simple, direct steps</option>
-                <option value="comprehensive">Comprehensive, with review notes</option>
-              </select>
-            </label>
-          </div>
+          <AiOptionsFields options={options} onChange={handleOptionsChange} />
           <div className="dialog-actions">
             <button type="button" className="secondary" onClick={onClose}>
               Cancel
@@ -436,7 +406,6 @@ const RefineDialog: React.FC<{
     </div>
   );
 };
-
 
 const SplitDialog: React.FC<{
   state: SplitDialogState;
@@ -480,24 +449,7 @@ const SplitDialog: React.FC<{
             placeholder="Optional guidance, e.g. focus on 2-minute actions"
             onChange={(event) => setInstructions(event.target.value)}
           />
-          <div className="preferences-field">
-            <label>
-              Task Size
-              <select value={options.length} onChange={(event) => handleOptionsChange({ length: event.target.value as AiGenerationOptions['length'] })}>
-                <option value="short">Short (~5 subtasks)</option>
-                <option value="long">Long (~10 subtasks)</option>
-              </select>
-            </label>
-          </div>
-          <div className="preferences-field">
-            <label>
-              Style
-              <select value={options.style} onChange={(event) => handleOptionsChange({ style: event.target.value as AiGenerationOptions['style'] })}>
-                <option value="simple">Simple, direct steps</option>
-                <option value="comprehensive">Comprehensive, with review notes</option>
-              </select>
-            </label>
-          </div>
+          <AiOptionsFields options={options} onChange={handleOptionsChange} />
           <div className="dialog-actions">
             <button type="button" className="secondary" onClick={onClose}>
               Cancel
@@ -775,7 +727,6 @@ const App: React.FC = () => {
   const [aiTaskId, setAiTaskId] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
-  const [dirtyIds, setDirtyIds] = useState<Set<string>>(new Set());
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiOptions, setAiOptions] = useState<AiGenerationOptions>({ length: 'short', style: 'simple' });
   const [preferences, setPreferences] = useState<PreferencesDialogState>({
@@ -787,25 +738,14 @@ const App: React.FC = () => {
 
   const hasPendingChanges = pendingOperations.length > 0;
 
-  const markDirty = (...ids: Array<string | null | undefined>) => {
-    setDirtyIds((prev) => {
-      const next = new Set(prev);
-      ids.filter(Boolean).forEach((id) => next.add(id as string));
-      return next;
-    });
-  };
-
-  const clearDirty = (ids: string[]) => {
-    setDirtyIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.delete(id));
-      return next;
-    });
-  };
-
-  const resetDirty = () => {
-    setDirtyIds(() => new Set());
-  };
+  const dirtyIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const op of pendingOperations) {
+      ids.add(op.taskId);
+      if (op.kind === 'create' && op.parentId) ids.add(op.parentId);
+    }
+    return ids;
+  }, [pendingOperations]);
 
   const queueCreate = (operation: Extract<PendingOperation, { kind: 'create' }>) => {
     setPendingOperations((prev) => {
@@ -821,14 +761,13 @@ const App: React.FC = () => {
       const createIndex = next.findIndex((op) => op.kind === 'create' && op.taskId === taskId);
       if (createIndex !== -1) {
         const createOp = next[createIndex] as Extract<PendingOperation, { kind: 'create' }>;
-        const updatedOp: Extract<PendingOperation, { kind: 'create' }> = {
+        next[createIndex] = {
           ...createOp,
           title: updates.title !== undefined ? updates.title : createOp.title,
           notes: updates.notes !== undefined ? updates.notes ?? '' : createOp.notes,
           due: updates.due !== undefined ? updates.due : createOp.due,
           status: updates.status !== undefined ? updates.status ?? createOp.status : createOp.status
         };
-        next[createIndex] = updatedOp;
         return next;
       }
       const updateIndex = next.findIndex((op) => op.kind === 'update' && op.taskId === taskId);
@@ -929,12 +868,6 @@ const App: React.FC = () => {
   }, [selectedListId]);
 
   useEffect(() => {
-    if (!hasPendingChanges) {
-      resetDirty();
-    }
-  }, [hasPendingChanges]);
-
-  useEffect(() => {
     setSelectedTaskId((previous) => {
       if (!tasks.length) {
         return null;
@@ -1006,7 +939,6 @@ const App: React.FC = () => {
       setAiProgress(null);
       setAiTaskId(null);
       setPendingOperations([]);
-      resetDirty();
       setStatus({ type: 'success', message: 'Signed out and cleared local tokens.' });
     } catch (error) {
       setStatus({ type: 'error', message: (error as Error).message });
@@ -1040,7 +972,6 @@ const App: React.FC = () => {
           due: draft.due || null,
           status: draft.status || 'needsAction'
         });
-        markDirty(newId, taskDialog.parentId || null);
         setSelectedTaskId(taskDialog.parentId ? taskDialog.parentId : newId);
         setStatus({ type: 'success', message: 'Task staged for sync.' });
       } else if (taskDialog.task) {
@@ -1059,7 +990,6 @@ const App: React.FC = () => {
           due: draft.due || null,
           status: draft.status || 'needsAction'
         });
-        markDirty(target.id, target.parentId || null);
         setStatus({ type: 'success', message: 'Task changes staged.' });
         if (!target.parentId) {
           setSelectedTaskId(target.id);
@@ -1082,7 +1012,6 @@ const App: React.FC = () => {
     setTasks((prev) => removeTaskFromTree(prev, task.id));
     if (wasNewTask) {
       setPendingOperations((prev) => prev.filter((op) => !ids.includes(op.taskId)));
-      clearDirty(ids);
     } else {
       setPendingOperations((prev) => {
         const filtered = prev.filter((op) => !ids.slice(1).includes(op.taskId) && !(op.kind === 'delete' && op.taskId === task.id));
@@ -1095,8 +1024,6 @@ const App: React.FC = () => {
           } as PendingOperation
         ];
       });
-      clearDirty(ids.slice(1));
-      markDirty(task.id, task.parentId || null);
     }
     if (!task.parentId) {
       setSelectedTaskId((prev) => (prev === task.id ? null : prev));
@@ -1137,7 +1064,7 @@ const App: React.FC = () => {
         title: subtask.title,
         notes: subtask.notes,
         due: null,
-        status: 'needsAction',
+        status: 'needsAction' as const,
         parentId: task.id,
         position: null,
         subtasks: [],
@@ -1163,13 +1090,9 @@ const App: React.FC = () => {
           due: null,
           status: 'needsAction'
         });
-        markDirty(subtask.id);
       });
       if (plan.parentTitle && plan.parentTitle !== task.title) {
         queueUpdate(task.id, { title: plan.parentTitle });
-        markDirty(task.id);
-      } else {
-        markDirty(task.id);
       }
       setStatus({ type: 'success', message: 'AI subtasks staged.' });
     } catch (error) {
@@ -1182,33 +1105,40 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRefine = async (feedback: string, task: TaskItem, options: AiGenerationOptions) => {
+  const handleAIReplaceSubtasks = async (
+    mode: 'refine' | 'split',
+    input: string,
+    task: TaskItem,
+    options: AiGenerationOptions
+  ) => {
     if (!selectedListId) return;
     setAiBusy(true);
-    setAiProgress('Refining subtasks…');
+    setAiProgress(mode === 'refine' ? 'Refining subtasks…' : 'Splitting subtasks…');
     setAiTaskId(task.id);
     setAiOptions(options);
     try {
-      const plan = await window.subtasker.planRefine({
-        listId: selectedListId,
-        task: {
-          id: task.id,
-          title: task.title,
-          notes: task.notes,
-          subtasks: task.subtasks
-        },
-        feedback,
-        options
-      });
-      const existingIds = task.subtasks.map((subtask) => subtask.id);
-      existingIds.forEach((id) => queueDelete(id));
-      clearDirty(existingIds);
+      const plan = await (mode === 'refine'
+        ? window.subtasker.planRefine({
+            listId: selectedListId,
+            task: { id: task.id, title: task.title, notes: task.notes, subtasks: task.subtasks },
+            feedback: input,
+            options
+          })
+        : window.subtasker.planSplit({
+            listId: selectedListId,
+            task: { id: task.id, title: task.title, notes: task.notes, subtasks: task.subtasks },
+            instructions: input,
+            options
+          }));
+
+      task.subtasks.forEach((sub) => queueDelete(sub.id));
+
       const newSubtasks = plan.subtasks.map((subtask) => ({
         id: generateTempId(),
         title: subtask.title,
         notes: subtask.notes,
         due: null,
-        status: 'needsAction',
+        status: 'needsAction' as const,
         parentId: task.id,
         position: null,
         subtasks: [],
@@ -1232,81 +1162,18 @@ const App: React.FC = () => {
           due: null,
           status: 'needsAction'
         });
-        markDirty(subtask.id);
       });
       if (plan.parentTitle && plan.parentTitle !== task.title) {
         queueUpdate(task.id, { title: plan.parentTitle });
       }
-      markDirty(task.id);
-      setStatus({ type: 'success', message: 'Subtasks refinement staged.' });
+      setStatus({
+        type: 'success',
+        message: mode === 'refine' ? 'Subtasks refinement staged.' : 'Subtasks split into smaller steps.'
+      });
     } catch (error) {
       setStatus({ type: 'error', message: (error as Error).message });
     } finally {
-      setRefineDialog(null);
-      setAiBusy(false);
-      setAiProgress(null);
-      setAiTaskId(null);
-    }
-  };
-
-  const handleSplit = async (instructions: string, task: TaskItem, options: AiGenerationOptions) => {
-    if (!selectedListId) return;
-    setAiBusy(true);
-    setAiProgress('Splitting subtasks…');
-    setAiTaskId(task.id);
-    setAiOptions(options);
-    try {
-      const plan = await window.subtasker.planSplit({
-        listId: selectedListId,
-        task: {
-          id: task.id,
-          title: task.title,
-          notes: task.notes,
-          subtasks: task.subtasks
-        },
-        instructions,
-        options
-      });
-      const existingIds = task.subtasks.map((subtask) => subtask.id);
-      existingIds.forEach((id) => queueDelete(id));
-      clearDirty(existingIds);
-      const newSubtasks = plan.subtasks.map((subtask) => ({
-        id: generateTempId(),
-        title: subtask.title,
-        notes: subtask.notes,
-        due: null,
-        status: 'needsAction',
-        parentId: task.id,
-        position: null,
-        subtasks: [],
-        isLocal: true
-      }));
-      setTasks((prev) => {
-        let next = replaceSubtasks(prev, task.id, newSubtasks);
-        if (plan.parentTitle && plan.parentTitle !== task.title) {
-          next = updateParentTitle(next, task.id, plan.parentTitle);
-        }
-        return next;
-      });
-      newSubtasks.forEach((subtask) => {
-        queueCreate({
-          kind: 'create',
-          taskId: subtask.id,
-          listId: selectedListId,
-          parentId: task.id,
-          title: subtask.title,
-          notes: subtask.notes || '',
-          due: null,
-          status: 'needsAction'
-        });
-        markDirty(subtask.id);
-      });
-      markDirty(task.id);
-      setStatus({ type: 'success', message: 'Subtasks split into smaller steps.' });
-    } catch (error) {
-      setStatus({ type: 'error', message: (error as Error).message });
-    } finally {
-      setSplitDialog(null);
+      mode === 'refine' ? setRefineDialog(null) : setSplitDialog(null);
       setAiBusy(false);
       setAiProgress(null);
       setAiTaskId(null);
@@ -1315,7 +1182,6 @@ const App: React.FC = () => {
 
   const discardLocalChanges = async ({ suppressStatus, skipReload }: { suppressStatus?: boolean; skipReload?: boolean } = {}) => {
     setPendingOperations([]);
-    resetDirty();
     setAiBusy(false);
     setAiProgress(null);
     setAiTaskId(null);
@@ -1343,7 +1209,6 @@ const App: React.FC = () => {
     try {
       await window.subtasker.applyChanges({ listId: selectedListId, operations: pendingOperations });
       setPendingOperations([]);
-      resetDirty();
       await reloadTasks(selectedListId);
       setStatus({ type: 'success', message: 'Changes synced to Google Tasks.' });
     } catch (error) {
@@ -1537,7 +1402,7 @@ const App: React.FC = () => {
       <RefineDialog
         state={refineDialog}
         onClose={() => setRefineDialog(null)}
-        onSubmit={handleRefine}
+        onSubmit={(feedback, task, opts) => handleAIReplaceSubtasks('refine', feedback, task, opts)}
         onOptionsChange={(opts) => {
           setAiOptions(opts);
           setRefineDialog((prev) => (prev ? { ...prev, options: opts } : prev));
@@ -1546,7 +1411,7 @@ const App: React.FC = () => {
       <SplitDialog
         state={splitDialog}
         onClose={() => setSplitDialog(null)}
-        onSubmit={handleSplit}
+        onSubmit={(instructions, task, opts) => handleAIReplaceSubtasks('split', instructions, task, opts)}
         onOptionsChange={(opts) => {
           setAiOptions(opts);
           setSplitDialog((prev) => (prev ? { ...prev, options: opts } : prev));

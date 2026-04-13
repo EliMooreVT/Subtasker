@@ -3,6 +3,7 @@ const { google } = require('googleapis');
 const { OAuth2Client } = require('google-auth-library');
 const fs = require('fs');
 const { getClientSecret, setClientSecret, getTokens, setTokens, clearTokens } = require('./store');
+const { logError } = require('./logger');
 
 const SCOPES = ['https://www.googleapis.com/auth/tasks'];
 
@@ -135,13 +136,7 @@ async function requestOAuthConsent(mainWindow, client) {
   authWindow.removeMenu?.();
   authWindow.loadURL(authUrl);
 
-  let code;
-  try {
-    code = await codePromise;
-  } catch (error) {
-    throw error;
-  }
-
+  const code = await codePromise;
   const tokenResponse = await client.getToken(code);
   client.setCredentials(tokenResponse.tokens);
   setTokens(tokenResponse.tokens);
@@ -157,7 +152,7 @@ async function revokeAuth() {
     try {
       await authClient.revokeToken(tokens.access_token);
     } catch (error) {
-      console.warn('Failed to revoke token', error);
+      logError('Failed to revoke token', error);
     }
   }
   clearTokens();

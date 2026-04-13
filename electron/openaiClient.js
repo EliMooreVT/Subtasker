@@ -153,8 +153,12 @@ function parseQuestions(raw) {
   let parsed;
   try {
     parsed = JSON.parse(normalized);
-  } catch (error) {
-    parsed = JSON.parse(jsonrepair(normalized));
+  } catch {
+    try {
+      parsed = JSON.parse(jsonrepair(normalized));
+    } catch (repairError) {
+      throw new Error(`Failed to read AI response: ${repairError.message}`);
+    }
   }
   if (!parsed.questions || !Array.isArray(parsed.questions)) {
     throw new Error('AI response missing questions array');
