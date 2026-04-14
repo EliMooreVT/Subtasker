@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AiGenerationOptions, PendingOperation, TaskItem } from './types/global';
 
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
@@ -218,10 +218,17 @@ const TaskDialog: React.FC<{
   onSubmit: (draft: TaskDraft) => Promise<void>;
 }> = ({ state, onClose, onSubmit }) => {
   const [draft, setDraft] = useState<TaskDraft>(prepareDraft(state?.task));
+  // Use a stable key based on mode + task id so background setTasks() re-renders
+  // don't change the object reference and wipe a draft mid-edit.
+  const openKey = state ? `${state.mode}-${state.task?.id ?? 'new'}` : null;
+  const prevOpenKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setDraft(prepareDraft(state?.task));
-  }, [state?.task]);
+    if (openKey !== null && openKey !== prevOpenKeyRef.current) {
+      setDraft(prepareDraft(state?.task));
+    }
+    prevOpenKeyRef.current = openKey;
+  }, [openKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!state) return null;
 
@@ -532,6 +539,26 @@ const PreferencesDialog: React.FC<{
   );
 };
 
+const ConfirmDialog: React.FC<{
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({ message, onConfirm, onCancel }) => (
+  <div className="dialog-backdrop">
+    <div className="dialog">
+      <p>{message}</p>
+      <div className="dialog-actions">
+        <button className="secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="primary" onClick={onConfirm}>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const TaskList: React.FC<{
   tasks: TaskItem[];
   selectedTaskId: string | null;
@@ -594,9 +621,9 @@ const SubtaskPanel: React.FC<{
   task: TaskItem | null;
   showCompleted: boolean;
   onAddSubtask: () => void;
-  onExpand: () => void | Promise<void>;
-  onRefine: () => void | Promise<void>;
-  onSplit: () => void | Promise<void>;
+  onExpand: () => Promise<void>;
+  onRefine: () => void;
+  onSplit: () => void;
   onEditTask: () => void;
   onDeleteTask: () => void;
   onEditSubtask: (task: TaskItem) => void;
@@ -688,16 +715,16 @@ const SubtaskPanel: React.FC<{
         <button className="primary" onClick={onAddSubtask} disabled={aiBusy || syncing}>
           Add Subtask
         </button>
-        <button className="secondary" onClick={onExpand} disabled={aiBusy || syncing}>
+        <button className="secondary" onClick={() => void onExpand()} disabled={aiBusy || syncing}>
           Expand Task with AI
         </button>
         {task.subtasks.length > 0 && (
-          <button onClick={onRefine} disabled={aiBusy || syncing}>
+          <button className="secondary" onClick={onRefine} disabled={aiBusy || syncing}>
             Refine with AI
           </button>
         )}
         {task.subtasks.length > 0 && (
-          <button onClick={onSplit} disabled={aiBusy || syncing}>
+          <button className="secondary" onClick={onSplit} disabled={aiBusy || syncing}>
             Split into Smaller Steps
           </button>
         )}
@@ -729,6 +756,7 @@ const App: React.FC = () => {
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiOptions, setAiOptions] = useState<AiGenerationOptions>({ length: 'short', style: 'simple' });
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState<TaskItem | null>(null);
   const [preferences, setPreferences] = useState<PreferencesDialogState>({
     open: false,
     openAiKey: '',
@@ -1002,10 +1030,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteTask = async (task: TaskItem) => {
-    if (!selectedListId) return;
-    const confirmed = confirm('Delete this task and any subtasks?');
-    if (!confirmed) return;
+  const handleDeleteTask = (task: TaskItem) => {
+    setDeleteConfirmTask(task);
+  };
+
+  const handleConfirmDelete = () => {
+    const task = deleteConfirmTask;
+    setDeleteConfirmTask(null);
+    if (!task || !selectedListId) return;
     const wasNewTask = pendingOperations.some((op) => op.kind === 'create' && op.taskId === task.id);
     const collectIds = (item: TaskItem): string[] => [item.id, ...item.subtasks.flatMap(collectIds)];
     const ids = collectIds(task);
@@ -1098,7 +1130,8 @@ const App: React.FC = () => {
     } catch (error) {
       setStatus({ type: 'error', message: (error as Error).message });
     } finally {
-      setExpandDialog(null);
+      // Guard against closing a dialog re-opened for a different task while this AI call was running
+      setExpandDialog((prev) => (prev?.task.id === task.id ? null : prev));
       setAiBusy(false);
       setAiProgress(null);
       setAiTaskId(null);
@@ -1131,7 +1164,9 @@ const App: React.FC = () => {
             options
           }));
 
-      task.subtasks.forEach((sub) => queueDelete(sub.id));
+      // Resolve current subtasks from the live tree — task captured at dialog-open time may be stale
+      const currentTask = findTaskById(tasks, task.id) ?? task;
+      currentTask.subtasks.forEach((sub) => queueDelete(sub.id));
 
       const newSubtasks = plan.subtasks.map((subtask) => ({
         id: generateTempId(),
@@ -1185,10 +1220,8 @@ const App: React.FC = () => {
     setAiBusy(false);
     setAiProgress(null);
     setAiTaskId(null);
-    setExpandDialog(null);
-    setRefineDialog(null);
-    setSplitDialog(null);
-    setTaskDialog(null);
+    // Dialogs are NOT closed here — call sites close them as appropriate so that
+    // a mid-fill dialog (e.g. Expand context textarea) is not silently discarded.
     if (!skipReload && selectedListId) {
       await reloadTasks(selectedListId);
     }
@@ -1198,6 +1231,12 @@ const App: React.FC = () => {
   };
 
   const handleDiscardChanges = async () => {
+    // Only close AI dialogs if an AI operation was in flight
+    if (aiBusy) {
+      setExpandDialog(null);
+      setRefineDialog(null);
+      setSplitDialog(null);
+    }
     await discardLocalChanges();
   };
 
@@ -1282,6 +1321,10 @@ const App: React.FC = () => {
           return;
         }
         await discardLocalChanges({ suppressStatus: true, skipReload: true });
+        setExpandDialog(null);
+        setRefineDialog(null);
+        setSplitDialog(null);
+        setTaskDialog(null);
         setTasks([]);
         setSelectedTaskId(null);
       }
@@ -1425,6 +1468,13 @@ const App: React.FC = () => {
         onLoadClientSecret={handleLoadSecret}
         clientSecretLoaded={clientSecretLoaded}
       />
+      {deleteConfirmTask && (
+        <ConfirmDialog
+          message={`Delete "${deleteConfirmTask.title}"${deleteConfirmTask.subtasks.length ? ' and its subtasks' : ''}?`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirmTask(null)}
+        />
+      )}
     </div>
   );
 };
