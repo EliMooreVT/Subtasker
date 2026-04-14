@@ -3,5 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["packages/ui/src", "packages/core"]
+  "include": ["packages/ui/src", "packages/core", "packages/desktop"]
 }

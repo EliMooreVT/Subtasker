@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { ServiceProvider, createWindowAdapter } from './ServiceContext';
+import { ServiceProvider } from './ServiceContext';
+import { DesktopService } from '../../desktop/DesktopService';
 import './styles.css';
 
-const service = createWindowAdapter();
+const service = new DesktopService();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
