@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AiGenerationOptions, PendingOperation, TaskItem } from './types/global';
+import {
+  generateTempId,
+  addTaskToTree,
+  updateTaskInTree,
+  removeTaskFromTree,
+  replaceSubtasks,
+  updateParentTitle,
+  findTaskById
+} from '../packages/core/taskTree';
 
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
 
@@ -72,88 +81,6 @@ function prepareDraft(task?: TaskItem): TaskDraft {
   };
 }
 
-function generateTempId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return `temp-${crypto.randomUUID()}`;
-  }
-  return `temp-${Math.random().toString(36).slice(2)}`;
-}
-
-function addTaskToTree(tree: TaskItem[], task: TaskItem) {
-  if (!task.parentId) {
-    return [...tree, { ...task, subtasks: task.subtasks ?? [] }];
-  }
-
-  const mapper = (items: TaskItem[]): TaskItem[] =>
-    items.map((item) => {
-      if (item.id === task.parentId) {
-        return {
-          ...item,
-          subtasks: [...item.subtasks, { ...task, subtasks: task.subtasks ?? [] }]
-        };
-      }
-      return {
-        ...item,
-        subtasks: mapper(item.subtasks)
-      };
-    });
-
-  return mapper(tree);
-}
-
-function updateTaskInTree(tree: TaskItem[], task: TaskItem) {
-  const mapper = (items: TaskItem[]): TaskItem[] =>
-    items.map((item) => {
-      if (item.id === task.id) {
-        return { ...item, ...task };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function removeTaskFromTree(tree: TaskItem[], taskId: string) {
-  const filterer = (items: TaskItem[]): TaskItem[] =>
-    items
-      .filter((item) => item.id !== taskId)
-      .map((item) => ({ ...item, subtasks: filterer(item.subtasks) }));
-  return filterer(tree);
-}
-
-function replaceSubtasks(tree: TaskItem[], parentId: string, subtasks: TaskItem[]) {
-  const mapper = (items: TaskItem[]): TaskItem[] =>
-    items.map((item) => {
-      if (item.id === parentId) {
-        return { ...item, subtasks };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function updateParentTitle(tree: TaskItem[], parentId: string, title: string) {
-  const mapper = (items: TaskItem[]): TaskItem[] =>
-    items.map((item) => {
-      if (item.id === parentId) {
-        return { ...item, title };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function findTaskById(tree: TaskItem[], id: string): TaskItem | null {
-  for (const task of tree) {
-    if (task.id === id) {
-      return task;
-    }
-    const nested = findTaskById(task.subtasks, id);
-    if (nested) {
-      return nested;
-    }
-  }
-  return null;
-}
 
 const GuidingQuestions: React.FC<{ questions: string[] }> = ({ questions }) => (
   <div>
@@ -565,9 +492,10 @@ const TaskList: React.FC<{
   onSelect: (task: TaskItem) => void;
   onEditTask: (task: TaskItem) => void;
   onDeleteTask: (task: TaskItem) => void;
+  onToggleComplete: (task: TaskItem) => void;
   hasHiddenCompleted: boolean;
   dirtyIds: Set<string>;
-}> = ({ tasks, selectedTaskId, onSelect, onEditTask, onDeleteTask, hasHiddenCompleted, dirtyIds }) => {
+}> = ({ tasks, selectedTaskId, onSelect, onEditTask, onDeleteTask, onToggleComplete, hasHiddenCompleted, dirtyIds }) => {
   if (!tasks.length) {
     return (
       <div className="empty-state">
@@ -582,7 +510,7 @@ const TaskList: React.FC<{
       {tasks.map((task) => (
         <div
           key={task.id}
-          className={`task-list-item ${selectedTaskId === task.id ? 'active' : ''}`}
+          className={`task-list-item ${selectedTaskId === task.id ? 'active' : ''} ${task.status === 'completed' ? 'completed' : ''}`}
           onClick={() => onSelect(task)}
         >
           <div className="task-list-main">
@@ -593,6 +521,15 @@ const TaskList: React.FC<{
             {task.notes && <div className="task-list-notes">{task.notes}</div>}
           </div>
           <div className="task-list-actions">
+            <button
+              className="secondary"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleComplete(task);
+              }}
+            >
+              {task.status === 'completed' ? 'Undo' : 'Complete'}
+            </button>
             <button
               className="secondary"
               onClick={(event) => {
@@ -1061,6 +998,15 @@ const App: React.FC = () => {
       setSelectedTaskId((prev) => (prev === task.id ? null : prev));
     }
     setStatus({ type: 'success', message: wasNewTask ? 'Temporary task removed.' : 'Deletion staged.' });
+  };
+
+  const handleToggleComplete = (task: TaskItem) => {
+    if (!selectedListId) return;
+    const newStatus: TaskUpdate['status'] = task.status === 'completed' ? 'needsAction' : 'completed';
+    const updatedTask: TaskItem = { ...task, status: newStatus };
+    setTasks((prev) => updateTaskInTree(prev, updatedTask));
+    queueUpdate(task.id, { status: newStatus });
+    setStatus({ type: 'success', message: newStatus === 'completed' ? 'Task marked complete.' : 'Task marked incomplete.' });
   };
 
   const handleRefreshLists = async () => {
