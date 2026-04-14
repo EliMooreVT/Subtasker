@@ -1,6 +1,6 @@
 'use strict';
 
-jest.mock('../electron/googleAuth', () => ({
+jest.mock('../packages/core/googleAuth', () => ({
   ensureAuthClient: jest.fn(),
 }));
 
@@ -20,14 +20,14 @@ jest.mock('googleapis', () => ({
   },
 }));
 
-const { ensureAuthClient } = require('../electron/googleAuth');
+const { ensureAuthClient } = require('../packages/core/googleAuth');
 
 describe('googleTasks', () => {
   let googleTasks;
 
   beforeEach(() => {
     ensureAuthClient.mockResolvedValue({});
-    googleTasks = require('../electron/googleTasks');
+    googleTasks = require('../packages/core/googleTasks');
   });
 
   describe('toTaskItem (via listTasks)', () => {

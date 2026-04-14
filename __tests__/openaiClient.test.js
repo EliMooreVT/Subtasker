@@ -1,11 +1,11 @@
 'use strict';
 
-jest.mock('../electron/store', () => ({
+jest.mock('../packages/core/store', () => ({
   getOpenAiKey: jest.fn(),
   getOpenAiContext: jest.fn(),
 }));
 
-jest.mock('../electron/logger', () => ({
+jest.mock('../packages/core/logger', () => ({
   logError: jest.fn(),
 }));
 
@@ -37,11 +37,11 @@ describe('openaiClient', () => {
   beforeEach(() => {
     // With resetModules:true each require() gets a fresh module registry.
     // Re-require all mocked modules so we hold the current mock instances.
-    ({ getOpenAiKey, getOpenAiContext } = require('../electron/store'));
+    ({ getOpenAiKey, getOpenAiContext } = require('../packages/core/store'));
     ({ jsonrepair } = require('jsonrepair'));
     getOpenAiKey.mockReturnValue('sk-test-key');
     getOpenAiContext.mockReturnValue('');
-    openaiClient = require('../electron/openaiClient');
+    openaiClient = require('../packages/core/openaiClient');
   });
 
   describe('expandTask', () => {

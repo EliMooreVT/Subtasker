@@ -1,9 +1,13 @@
 'use strict';
 
-// ---------------------------------------------------------------------------
-// Pure tree utilities from App.tsx, duplicated here for unit testing.
-// When these are extracted to a dedicated module, replace with a require().
-// ---------------------------------------------------------------------------
+const {
+  addTaskToTree,
+  updateTaskInTree,
+  removeTaskFromTree,
+  replaceSubtasks,
+  updateParentTitle,
+  findTaskById,
+} = require('../packages/core/taskTree');
 
 function makeTask(overrides = {}) {
   return {
@@ -17,72 +21,6 @@ function makeTask(overrides = {}) {
     ...overrides,
   };
 }
-
-function addTaskToTree(tree, task) {
-  if (!task.parentId) {
-    return [...tree, { ...task, subtasks: task.subtasks ?? [] }];
-  }
-  const mapper = (items) =>
-    items.map((item) => {
-      if (item.id === task.parentId) {
-        return { ...item, subtasks: [...item.subtasks, { ...task, subtasks: task.subtasks ?? [] }] };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function updateTaskInTree(tree, task) {
-  const mapper = (items) =>
-    items.map((item) => {
-      if (item.id === task.id) {
-        return { ...item, ...task };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function removeTaskFromTree(tree, taskId) {
-  const filterer = (items) =>
-    items
-      .filter((item) => item.id !== taskId)
-      .map((item) => ({ ...item, subtasks: filterer(item.subtasks) }));
-  return filterer(tree);
-}
-
-function replaceSubtasks(tree, parentId, subtasks) {
-  const mapper = (items) =>
-    items.map((item) => {
-      if (item.id === parentId) {
-        return { ...item, subtasks };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function updateParentTitle(tree, parentId, title) {
-  const mapper = (items) =>
-    items.map((item) => {
-      if (item.id === parentId) {
-        return { ...item, title };
-      }
-      return { ...item, subtasks: mapper(item.subtasks) };
-    });
-  return mapper(tree);
-}
-
-function findTaskById(tree, id) {
-  for (const task of tree) {
-    if (task.id === id) return task;
-    const nested = findTaskById(task.subtasks, id);
-    if (nested) return nested;
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
 
 describe('addTaskToTree', () => {
   it('should append a root-level task when parentId is null', () => {

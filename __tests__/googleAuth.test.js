@@ -1,6 +1,6 @@
 'use strict';
 
-jest.mock('../electron/store', () => ({
+jest.mock('../packages/core/store', () => ({
   getClientSecret: jest.fn(),
   setClientSecret: jest.fn(),
   getTokens: jest.fn(),
@@ -8,7 +8,7 @@ jest.mock('../electron/store', () => ({
   clearTokens: jest.fn(),
 }));
 
-jest.mock('../electron/logger', () => ({
+jest.mock('../packages/core/logger', () => ({
   logError: jest.fn(),
 }));
 
@@ -29,13 +29,13 @@ jest.mock('google-auth-library', () => ({
 
 jest.mock('googleapis', () => ({ google: {} }));
 
-const { getTokens, clearTokens } = require('../electron/store');
+const { getTokens, clearTokens } = require('../packages/core/store');
 
 describe('googleAuth', () => {
   let googleAuth;
 
   beforeEach(() => {
-    googleAuth = require('../electron/googleAuth');
+    googleAuth = require('../packages/core/googleAuth');
   });
 
   describe('parseClientSecret', () => {
