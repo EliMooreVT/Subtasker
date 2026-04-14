@@ -3,6 +3,8 @@ productName: Subtasker
 files:
   - dist/**/*
   - electron/**/*
+  - packages/core/*.js
+  - packages/core/package.json
   - package.json
 directories:
   output: release

@@ -20,15 +20,6 @@
     "test": "jest",
     "go": "bash scripts/go.sh"
   },
-  "dependencies": {
-    "electron-store": "^8.2.0",
-    "google-auth-library": "^9.15.0",
-    "googleapis": "^144.0.0",
-    "jsonrepair": "^3.13.0",
-    "openai": "^4.85.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
