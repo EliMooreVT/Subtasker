@@ -9,6 +9,7 @@ import {
   updateParentTitle,
   findTaskById
 } from '../packages/core/taskTree';
+import { useService } from './ServiceContext';
 
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
 
@@ -672,6 +673,7 @@ const SubtaskPanel: React.FC<{
 };
 
 const App: React.FC = () => {
+  const service = useService();
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [lists, setLists] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -780,7 +782,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const settings = await window.subtasker.loadSettings();
+        const settings = await service.loadSettings();
         setClientSecretLoaded(settings.hasClientSecret);
         if (settings.hasClientSecret) {
           try {
@@ -791,7 +793,7 @@ const App: React.FC = () => {
           }
         }
         setOpenAiKey(settings.openAiKey || '');
-        const context = await window.subtasker.getOpenAiContext();
+        const context = await service.getOpenAiContext();
         setOpenAiContext(context || '');
         setPreferences((prev) => ({
           ...prev,
@@ -808,7 +810,7 @@ const App: React.FC = () => {
   }, []);
 
   const fetchLists = async () => {
-    const fetched = await window.subtasker.listTaskLists();
+    const fetched = await service.listTaskLists();
     setLists(fetched);
     if (fetched.length && !selectedListId) {
       setSelectedListId(fetched[0].id);
@@ -818,7 +820,7 @@ const App: React.FC = () => {
   const reloadTasks = async (listId: string) => {
     setIsLoading(true);
     try {
-      const fetched = await window.subtasker.listTasks(listId);
+      const fetched = await service.listTasks(listId);
       setTasks(fetched);
     } catch (error) {
       setStatus({ type: 'error', message: (error as Error).message });
@@ -850,7 +852,7 @@ const App: React.FC = () => {
 
   const handleLoadSecret = async () => {
     try {
-      const result = await window.subtasker.loadClientSecret();
+      const result = await service.loadClientSecret();
       if (result) {
         setClientSecretLoaded(true);
         setStatus({ type: 'success', message: 'Client secret loaded.' });
@@ -870,9 +872,9 @@ const App: React.FC = () => {
 
   const handleSavePreferences = async () => {
     try {
-      await window.subtasker.setOpenAiKey(preferences.openAiKey);
+      await service.setOpenAiKey(preferences.openAiKey);
       setOpenAiKey(preferences.openAiKey);
-      await window.subtasker.setOpenAiContext(preferences.context || '');
+      await service.setOpenAiContext(preferences.context || '');
       setOpenAiContext(preferences.context || '');
       setPreferences({ open: false, openAiKey: preferences.openAiKey, showKey: false, context: preferences.context || '' });
       setStatus({ type: 'success', message: 'Preferences saved.' });
@@ -883,7 +885,7 @@ const App: React.FC = () => {
 
   const handleSignIn = async () => {
     try {
-      await window.subtasker.signIn();
+      await service.signIn();
       setIsSignedIn(true);
       await fetchLists();
       setStatus({ type: 'success', message: 'Signed in to Google Tasks.' });
@@ -894,7 +896,7 @@ const App: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await window.subtasker.signOut();
+      await service.signOut();
       setIsSignedIn(false);
       setTasks([]);
       setLists([]);
@@ -1032,7 +1034,7 @@ const App: React.FC = () => {
     setAiTaskId(task.id);
     setAiOptions(options);
     try {
-      const plan = await window.subtasker.planExpand({
+      const plan = await service.planExpand({
         listId: selectedListId,
         task: { id: task.id, title: task.title, notes: task.notes, context },
         options
@@ -1097,13 +1099,13 @@ const App: React.FC = () => {
     setAiOptions(options);
     try {
       const plan = await (mode === 'refine'
-        ? window.subtasker.planRefine({
+        ? service.planRefine({
             listId: selectedListId,
             task: { id: task.id, title: task.title, notes: task.notes, subtasks: task.subtasks },
             feedback: input,
             options
           })
-        : window.subtasker.planSplit({
+        : service.planSplit({
             listId: selectedListId,
             task: { id: task.id, title: task.title, notes: task.notes, subtasks: task.subtasks },
             instructions: input,
@@ -1192,7 +1194,7 @@ const App: React.FC = () => {
     }
     setIsSyncing(true);
     try {
-      await window.subtasker.applyChanges({ listId: selectedListId, operations: pendingOperations });
+      await service.applyChanges({ listId: selectedListId, operations: pendingOperations });
       setPendingOperations([]);
       await reloadTasks(selectedListId);
       setStatus({ type: 'success', message: 'Changes synced to Google Tasks.' });
@@ -1227,7 +1229,7 @@ const App: React.FC = () => {
     if (!selectedTask) return;
     setExpandDialog({ task: selectedTask, context: '', questions: FALLBACK_GUIDING_QUESTIONS, options: aiOptions });
     try {
-      const generated = await window.subtasker.getGuidingQuestions(selectedTask.title);
+      const generated = await service.getGuidingQuestions(selectedTask.title);
       setExpandDialog((prev) =>
         prev && prev.task.id === selectedTask.id ? { ...prev, questions: generated } : prev
       );
@@ -1354,6 +1356,7 @@ const App: React.FC = () => {
                 onSelect={handleSelectTask}
                 onEditTask={(task) => setTaskDialog({ mode: 'edit', parentId: task.parentId || null, task })}
                 onDeleteTask={handleDeleteTask}
+                onToggleComplete={handleToggleComplete}
                 hasHiddenCompleted={hasHiddenCompleted}
                 dirtyIds={dirtyIds}
               />

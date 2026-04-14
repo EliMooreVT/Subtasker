@@ -21,7 +21,7 @@ declare global {
       updateTask: (
         listId: string,
         taskId: string,
-        payload: { title: string; notes?: string; due?: string | null; status?: string }
+        payload: { title?: string; notes?: string; due?: string | null; status?: string }
       ) => Promise<TaskItem>;
       deleteTask: (listId: string, taskId: string) => Promise<{ success: boolean }>;
       planExpand: (
