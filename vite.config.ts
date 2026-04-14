@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: 'src',
+  root: 'packages/ui/src',
   base: './',
   build: {
     outDir: path.resolve(__dirname, 'dist'),

@@ -1,6 +1,6 @@
-export type { SubtaskPayload, TaskItem, AiGenerationOptions, PendingOperation } from '../../packages/core/types';
+export type { SubtaskPayload, TaskItem, AiGenerationOptions, PendingOperation } from '../../../core/types';
 
-import type { AiGenerationOptions, PendingOperation, TaskItem } from '../../packages/core/types';
+import type { AiGenerationOptions, PendingOperation, TaskItem } from '../../../core/types';
 
 declare global {
   interface Window {

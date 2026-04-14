@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { SubtaskerService } from '../packages/core/SubtaskerService';
+import type { SubtaskerService } from '../../core/SubtaskerService';
 
 const ServiceContext = createContext<SubtaskerService | null>(null);
 

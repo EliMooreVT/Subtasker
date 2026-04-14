@@ -8,7 +8,7 @@ import {
   replaceSubtasks,
   updateParentTitle,
   findTaskById
-} from '../packages/core/taskTree';
+} from '../../core/taskTree';
 import { useService } from './ServiceContext';
 
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
