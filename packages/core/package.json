@@ -1,0 +1,14 @@
+{
+  "name": "@subtasker/core",
+  "version": "0.1.0",
+  "description": "Shared business logic, API clients, and types for Subtasker.",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "google-auth-library": "^9.15.0",
+    "googleapis": "^144.0.0",
+    "jsonrepair": "^3.13.0",
+    "openai": "^4.85.0"
+  }
+}

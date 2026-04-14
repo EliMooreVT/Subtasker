@@ -1,0 +1,16 @@
+{
+  "name": "@subtasker/desktop",
+  "version": "0.1.0",
+  "description": "Electron wrapper for Subtasker desktop.",
+  "main": "electron/main.js",
+  "license": "MIT",
+  "dependencies": {
+    "@subtasker/core": "*"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0",
+    "wait-on": "^8.0.0"
+  }
+}

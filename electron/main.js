@@ -10,24 +10,24 @@ const {
   setOpenAiContext,
   getClientSecret,
   setWindowBounds
-} = require('./store');
-const { handleLoadClientSecret, ensureAuthClient, revokeAuth } = require('./googleAuth');
+} = require('../packages/core/store');
+const { handleLoadClientSecret, ensureAuthClient, revokeAuth } = require('../packages/core/googleAuth');
 const {
   listTaskLists,
   listTasks,
   createTask,
   updateTask,
-  deleteTask,
-  insertSubtasks,
-  replaceSubtasks
-} = require('./googleTasks');
+  deleteTask
+} = require('../packages/core/googleTasks');
 const {
   expandTask,
   refineSubtasks,
   splitSubtasks,
   generateGuidingQuestions
-} = require('./openaiClient');
-const { logError, getLogPath } = require('./logger');
+} = require('../packages/core/openaiClient');
+const { setLogPath, logError, getLogPath } = require('../packages/core/logger');
+
+setLogPath(path.join(app.getPath('userData'), 'subtasker-error.log'));
 
 let mainWindow;
 
@@ -52,7 +52,7 @@ function registerHandle(channel, handler) {
 }
 
 function createWindow() {
-  const bounds = require('./store').getWindowBounds();
+  const bounds = require('../packages/core/store').getWindowBounds();
   mainWindow = new BrowserWindow({
     width: bounds.width,
     height: bounds.height,

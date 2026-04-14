@@ -1,7 +1,11 @@
 {
-  "name": "subtasker",
+  "name": "subtasker-root",
   "version": "0.1.0",
-  "description": "Subtasker desktop app that extends Google Tasks with AI-powered subtasks.",
+  "private": true,
+  "description": "Subtasker — monorepo root",
+  "workspaces": [
+    "packages/*"
+  ],
   "main": "electron/main.js",
   "author": "",
   "license": "MIT",
