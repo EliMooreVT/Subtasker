@@ -702,6 +702,7 @@ const App: React.FC = () => {
     showKey: false,
     context: ''
   });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const hasPendingChanges = pendingOperations.length > 0;
 
@@ -1261,6 +1262,7 @@ const App: React.FC = () => {
   };
 
   const handleSelectList = (id: string) => {
+    setSidebarOpen(false);
     if (selectedListId === id) return;
     const switchList = async () => {
       if (hasPendingChanges) {
@@ -1283,7 +1285,16 @@ const App: React.FC = () => {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {/* Hamburger toggle — rendered in DOM always, visible only on mobile via CSS */}
+      <button
+        className="sidebar-toggle"
+        aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <span>Subtasker</span>
+        <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
+      </button>
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         <header>Subtasker</header>
         <p className="small">Extend Google Tasks with AI-powered micro-steps.</p>
         <div className="task-lists">

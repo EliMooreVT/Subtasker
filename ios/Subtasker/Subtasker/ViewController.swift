@@ -15,6 +15,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
     private func setupWebView() {
         let config = WKWebViewConfiguration()
 
+        #if DEBUG
         // Capture JS console output so errors surface in Xcode console
         let consoleCapture = """
         (function() {
@@ -38,6 +39,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         })();
         """
         let consoleScript = WKUserScript(source: consoleCapture, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        #endif
 
         // Inject BridgeShim.js before the page document is parsed
         if let shimURL = Bundle.main.url(forResource: "BridgeShim", withExtension: "js"),
@@ -50,8 +52,10 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
             config.userContentController.addUserScript(userScript)
         }
 
+        #if DEBUG
         config.userContentController.addUserScript(consoleScript)
         config.userContentController.add(self, name: "console")
+        #endif
 
         // Register the message handler — bridge holds a reference
         bridge = SubtaskerBridge()
@@ -90,19 +94,22 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         webView.loadHTMLString(html, baseURL: nil)
     }
 
-    // MARK: - WKScriptMessageHandler (console capture)
+    // MARK: - WKScriptMessageHandler (console capture — DEBUG only)
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        #if DEBUG
         guard message.name == "console",
               let body = message.body as? [String: Any],
               let level = body["level"] as? String,
               let msg = body["msg"] as? String else { return }
         print("[JS:\(level.uppercased())] \(msg)")
+        #endif
     }
 
     // MARK: - WKNavigationDelegate
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        #if DEBUG
         // Dump DOM state to help diagnose blank-screen issues
         webView.evaluateJavaScript("""
             JSON.stringify({
@@ -120,6 +127,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
                 print("[DOM-DUMP-ERROR] \(error.localizedDescription)")
             }
         }
+        #endif
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

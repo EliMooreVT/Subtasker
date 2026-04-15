@@ -6,3 +6,8 @@ release/
 Thumbs.db
 .env
 client_secret.json
+
+# Xcode user data
+ios/Subtasker/Subtasker.xcodeproj/xcuserdata/
+ios/Subtasker/Subtasker.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate

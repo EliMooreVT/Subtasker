@@ -36,6 +36,11 @@ body {
   font-weight: 600;
 }
 
+/* ── Sidebar toggle button (mobile only, hidden on desktop) ── */
+.sidebar-toggle {
+  display: none;
+}
+
 .task-lists {
   flex: 1;
   overflow-y: auto;
@@ -516,4 +521,218 @@ button:disabled {
 
 .preferences-key-field input {
   flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE LAYOUT  (≤ 480 px — iPhone-sized screens)
+   All rules below are additive; desktop layout is unchanged.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+
+  /* Safe area: respect Dynamic Island / notch / home indicator */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #root {
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  /* ── App shell: stack sidebar above main instead of side-by-side ── */
+  .app-shell {
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ── Sidebar: hidden by default; slides in when .sidebar-open is set ── */
+  .sidebar {
+    width: 100%;
+    box-sizing: border-box;
+    /* Collapsed to zero height so it does not consume space */
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 16px;
+    gap: 0;
+    transition: max-height 0.28s ease, padding 0.28s ease;
+  }
+
+  .sidebar.sidebar-open {
+    max-height: 60vh;
+    padding: 16px;
+    gap: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Sidebar toggle: hamburger/close button shown only on mobile ── */
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1f2933;
+    color: #f8fafc;
+    border: none;
+    padding: 0 16px;
+    height: 48px;          /* well above 44 pt HIG minimum */
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sidebar-toggle .sidebar-toggle-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  /* ── Main panel: take full remaining height ── */
+  .main-panel {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Toolbar: horizontal scroll instead of multi-row stacking ── */
+  .toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    margin-bottom: 12px;
+    /* Hide scrollbar visually on iOS */
+    scrollbar-width: none;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Prevent buttons from shrinking below their text width */
+  .toolbar button,
+  .toolbar label {
+    flex-shrink: 0;
+    min-height: 44px;        /* HIG: 44 pt minimum touch target */
+    padding: 0 14px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  /* ── Content layout: single-column (tasks on top, subtasks below) ── */
+  .content-layout {
+    flex-direction: column;
+    gap: 16px;
+    overflow: visible;       /* let .main-panel scroll, not nested containers */
+  }
+
+  .tasks-panel {
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding-right: 0;
+    padding-bottom: 16px;
+  }
+
+  /* Task list: remove fixed overflow; outer panel scrolls */
+  .task-list {
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
+  /* ── Task cards: bigger touch targets ── */
+  .task-list-item {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .task-list-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .task-list-actions button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+
+  /* ── Subtasks panel: full width, no fixed height ── */
+  .subtasks-panel {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 14px;
+  }
+
+  .subtask-list {
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
+  .subtasks-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .subtasks-header-actions {
+    flex-wrap: wrap;
+  }
+
+  .subtasks-header-actions button {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .subtasks-footer {
+    gap: 8px;
+  }
+
+  .subtasks-footer button {
+    min-height: 44px;       /* HIG minimum for primary actions */
+    padding: 0 14px;
+    font-size: 0.9rem;
+  }
+
+  /* ── Dialogs: full-width sheet on narrow screens ── */
+  .dialog {
+    width: calc(100vw - 32px);
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 16px;
+  }
+
+  .preferences-dialog {
+    width: calc(100vw - 32px);
+  }
+
+  .dialog-actions button {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  /* ── General: larger base touch targets for all lone buttons ── */
+  button {
+    min-height: 36px;
+  }
+
+  /* Content header: wrap on very narrow screens */
+  .content-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .content-header h2 {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .content-header button {
+    min-height: 36px;
+    font-size: 0.85rem;
+  }
 }
