@@ -17,8 +17,9 @@ if [ -z "$CHOICE" ]; then
   echo "  3  build      Build + type check"
   echo "  4  test+build Unit tests then build + type check"
   echo "  5  full       All of the above"
+  echo "  6  ios        Build renderer then open Xcode project"
   echo ""
-  read -rp "  Choice [1-5]: " CHOICE
+  read -rp "  Choice [1-6]: " CHOICE
   echo ""
 fi
 
@@ -43,6 +44,10 @@ case "$CHOICE" in
     npm run build
     npx tsc --noEmit && echo "✓ No type errors"
     npm run dev
+    ;;
+  6)
+    npx vite build --config vite.config.ios.ts
+    open ios/Subtasker/Subtasker.xcodeproj
     ;;
   *)
     echo "Invalid choice: $CHOICE" >&2

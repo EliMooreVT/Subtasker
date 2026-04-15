@@ -34,3 +34,35 @@ The full `window.subtasker` API surface is defined in `electron/preload.js`. Typ
 ## Electron/CommonJS vs TypeScript
 
 `electron/` files are plain CommonJS (`require`/`module.exports`). `src/` is strict TypeScript ESM. Don't mix module systems across the boundary.
+
+## iOS Port
+
+The React UI runs inside a `WKWebView` in a native Swift app at `ios/Subtasker/`.
+
+**Build flow:**
+```bash
+npm run build                # compile renderer to dist/
+npm run go 6                 # build + open Xcode
+# In Xcode: drag dist/ folder into the Subtasker target, then build & run
+xcodebuild -project ios/Subtasker/Subtasker.xcodeproj \
+  -scheme Subtasker \
+  -destination 'platform=iOS Simulator,name=iPhone 16' build
+```
+
+**Bridge architecture** (mirrors Electron's two-process model):
+- `ios/Subtasker/Subtasker/BridgeShim.js` — injected via `WKUserScript`, creates `window.subtasker` with the same 19-method API shape as `electron/preload.js`
+- `SubtaskerBridge.swift` — `WKScriptMessageHandler`, routes `{ id, action, payload }` messages to Swift handlers, resolves/rejects JS Promises via `window.__nativeResolve` / `window.__nativeReject`
+- `packages/mobile/MobileService.ts` — implements `SubtaskerService` by calling `window.subtasker` (identical to `DesktopService`)
+- `packages/ui/src/main.tsx` — detects `window.webkit.messageHandlers.subtasker` at startup to choose `MobileService` vs `DesktopService`
+
+**Swift handlers** (in `ios/Subtasker/Subtasker/handlers/`):
+- `GoogleAuthHandler.swift` — `ASWebAuthenticationSession` OAuth, token refresh; iOS client ID: `514536573811-ktgpuer9uneuo32jgib1l84h2m5kbtfu.apps.googleusercontent.com`
+- `GoogleTasksHandler.swift` — `URLSession` REST calls to `tasks.googleapis.com`
+- `OpenAIHandler.swift` — `URLSession` POST to `api.openai.com`; prompts copied verbatim from `packages/core/openaiClient.js`
+- `SettingsHandler.swift`, `AppHandler.swift` — settings and diagnostics
+
+**Storage** (in `ios/Subtasker/Subtasker/storage/`):
+- `KeychainStore.swift` — OAuth tokens + OpenAI key (Security.framework)
+- `SettingsStore.swift` — `UserDefaults` for non-secret settings + error log path
+
+**Adding dist/ to Xcode:** After `npm run build`, right-click the `Subtasker` group in the Project Navigator → Add Files → select `dist/` → "Create folder references" (blue icon, not yellow group) → uncheck "Copy items if needed" → Add. The `dist` folder reference must be added to the app target so it is bundled.
