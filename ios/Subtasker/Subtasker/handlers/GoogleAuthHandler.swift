@@ -14,6 +14,14 @@ class GoogleAuthHandler: NSObject {
     private let tokenEndpoint = URL(string: "https://oauth2.googleapis.com/token")!
     private let revokeEndpoint = URL(string: "https://oauth2.googleapis.com/revoke")!
 
+    // Strong references kept alive for the duration of an auth flow.
+    // ASWebAuthenticationSession.presentationContextProvider is a weak var, so
+    // a temporary DefaultPresentationContext would otherwise be deallocated
+    // immediately after assignment and before session.start() is called.
+    // Similarly, the session itself must outlive the continuation closure body.
+    private var authSession: ASWebAuthenticationSession?
+    private var authPresentationContext: DefaultPresentationContext?
+
     // MARK: - Bridge actions
 
     func loadClientSecret() async throws -> [String: Any] {
@@ -80,11 +88,19 @@ class GoogleAuthHandler: NSObject {
         ]
         let authURL = components.url!
 
+        // Use a stored strong reference so the presentation context is not
+        // deallocated before session.start() — the property on the session is weak.
+        let context = DefaultPresentationContext(vc: vc)
+        self.authPresentationContext = context
+
         return try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(
                 url: authURL,
                 callbackURLScheme: Self.redirectScheme
-            ) { callbackURL, error in
+            ) { [weak self] callbackURL, error in
+                // Release stored references regardless of outcome.
+                self?.authSession = nil
+                self?.authPresentationContext = nil
                 if let error = error {
                     continuation.resume(throwing: error)
                     return
@@ -98,9 +114,11 @@ class GoogleAuthHandler: NSObject {
                 }
                 continuation.resume(returning: code)
             }
-            session.presentationContextProvider = vc as? ASWebAuthenticationPresentationContextProviding
-                ?? DefaultPresentationContext(vc: vc)
+            session.presentationContextProvider = context
             session.prefersEphemeralWebBrowserSession = false
+            // Keep a strong reference to the session so it is not deallocated
+            // after the continuation closure body exits and before the callback fires.
+            self.authSession = session
             session.start()
         }
     }
