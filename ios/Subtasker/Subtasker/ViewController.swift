@@ -57,6 +57,21 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         config.userContentController.add(self, name: "console")
         #endif
 
+        // Track software keyboard height via visualViewport and expose it as
+        // a CSS custom property so dialogs can shrink to stay above the keyboard.
+        let keyboardScript = WKUserScript(source: """
+        (function() {
+            function updateKeyboardHeight() {
+                var kh = window.innerHeight - (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+                document.documentElement.style.setProperty('--keyboard-height', Math.max(0, kh) + 'px');
+            }
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', updateKeyboardHeight);
+            }
+        })();
+        """, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        config.userContentController.addUserScript(keyboardScript)
+
         // Register the message handler — bridge holds a reference
         bridge = SubtaskerBridge()
         config.userContentController.add(bridge, name: "subtasker")
@@ -64,6 +79,9 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
+        #if DEBUG
+        if #available(iOS 16.4, *) { webView.isInspectable = true }
+        #endif
         view.addSubview(webView)
 
         NSLayoutConstraint.activate([

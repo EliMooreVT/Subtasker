@@ -11,6 +11,8 @@ import {
 } from '../../core/taskTree';
 import { useService } from './ServiceContext';
 
+const isIOS = !!(window as any).webkit?.messageHandlers?.subtasker;
+
 type StatusState = { type: 'success' | 'error' | 'info'; message: string } | null;
 
 type TaskDialogState =
@@ -66,6 +68,8 @@ type PreferencesDialogState = {
   showKey: boolean;
   context: string;
 };
+
+
 
 const FALLBACK_GUIDING_QUESTIONS = [
   'What outcome are you aiming for?',
@@ -406,7 +410,9 @@ const PreferencesDialog: React.FC<{
   onClose: () => void;
   onLoadClientSecret: () => void;
   clientSecretLoaded: boolean;
-}> = ({ state, onChange, onSave, onClose, onLoadClientSecret, clientSecretLoaded }) => {
+  autoSync: boolean;
+  onAutoSyncChange: (value: boolean) => void;
+}> = ({ state, onChange, onSave, onClose, onLoadClientSecret, clientSecretLoaded, autoSync, onAutoSyncChange }) => {
   if (!state.open) {
     return null;
   }
@@ -416,14 +422,16 @@ const PreferencesDialog: React.FC<{
       <div className="dialog preferences-dialog">
         <h2>Preferences</h2>
         <p className="small">Manage credentials for Google Tasks and OpenAI.</p>
-        <div className="preferences-section">
-          <h3>Google Tasks</h3>
-          <p className="small">Load your desktop OAuth client credentials to enable Google sign-in.</p>
-          <button onClick={onLoadClientSecret}>
-            {clientSecretLoaded ? 'Reload client_secret.json' : 'Load client_secret.json'}
-          </button>
-          {clientSecretLoaded && <span className="badge">Loaded</span>}
-        </div>
+        {!isIOS && (
+          <div className="preferences-section">
+            <h3>Google Tasks</h3>
+            <p className="small">Load your desktop OAuth client credentials to enable Google sign-in.</p>
+            <button onClick={onLoadClientSecret}>
+              {clientSecretLoaded ? 'Reload client_secret.json' : 'Load client_secret.json'}
+            </button>
+            {clientSecretLoaded && <span className="badge">Loaded</span>}
+          </div>
+        )}
         <div className="preferences-section">
           <h3>OpenAI</h3>
           <label className="preferences-field">
@@ -454,6 +462,24 @@ const PreferencesDialog: React.FC<{
             />
           </label>
         </div>
+        {isIOS && (
+          <div className="preferences-section">
+            <h3>Sync</h3>
+            <div className="pref-row">
+              <label className="pref-label" htmlFor="autosync-toggle">
+                Auto-sync
+                <span className="pref-sublabel">Push changes immediately after each edit</span>
+              </label>
+              <button
+                id="autosync-toggle"
+                role="switch"
+                aria-checked={autoSync}
+                className={`toggle-switch${autoSync ? ' on' : ''}`}
+                onClick={() => onAutoSyncChange(!autoSync)}
+              />
+            </div>
+          </div>
+        )}
         <div className="dialog-actions">
           <button className="secondary" onClick={onClose}>
             Cancel
@@ -471,7 +497,8 @@ const ConfirmDialog: React.FC<{
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
-}> = ({ message, onConfirm, onCancel }) => (
+  confirmLabel?: string;
+}> = ({ message, onConfirm, onCancel, confirmLabel = 'Delete' }) => (
   <div className="dialog-backdrop">
     <div className="dialog">
       <p>{message}</p>
@@ -480,7 +507,7 @@ const ConfirmDialog: React.FC<{
           Cancel
         </button>
         <button className="primary" onClick={onConfirm}>
-          Delete
+          {confirmLabel}
         </button>
       </div>
     </div>
@@ -496,7 +523,8 @@ const TaskList: React.FC<{
   onToggleComplete: (task: TaskItem) => void;
   hasHiddenCompleted: boolean;
   dirtyIds: Set<string>;
-}> = ({ tasks, selectedTaskId, onSelect, onEditTask, onDeleteTask, onToggleComplete, hasHiddenCompleted, dirtyIds }) => {
+  onOpenSheet?: (taskId: string) => void;
+}> = ({ tasks, selectedTaskId, onSelect, onEditTask, onDeleteTask, onToggleComplete, hasHiddenCompleted, dirtyIds, onOpenSheet }) => {
   if (!tasks.length) {
     return (
       <div className="empty-state">
@@ -509,47 +537,71 @@ const TaskList: React.FC<{
   return (
     <div className="task-list">
       {tasks.map((task) => (
-        <div
-          key={task.id}
-          className={`task-list-item ${selectedTaskId === task.id ? 'active' : ''} ${task.status === 'completed' ? 'completed' : ''}`}
-          onClick={() => onSelect(task)}
-        >
-          <div className="task-list-main">
-            <div className="task-list-header">
-              <div className="task-list-title">{task.title}</div>
-              {dirtyIds.has(task.id) && <span className="badge unsynced">Unsynced</span>}
+        isIOS && onOpenSheet ? (
+          // Mobile row: checkbox + title tap opens sheet, chevron indicates subtasks
+          <div key={task.id} className="task-item task-row-mobile">
+            <button
+              className={`task-checkbox-mobile${task.status === 'completed' ? ' completed' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onToggleComplete(task); }}
+              aria-label={task.status === 'completed' ? 'Mark incomplete' : 'Mark complete'}
+            >
+              {task.status === 'completed' && '✓'}
+            </button>
+            <span
+              className={`task-title-mobile${task.status === 'completed' ? ' completed' : ''}`}
+              onClick={() => onOpenSheet(task.id)}
+            >
+              {task.title}
+              {dirtyIds.has(task.id) && <span className="badge unsynced" style={{ marginLeft: 6 }}>Unsynced</span>}
+            </span>
+            {task.subtasks.length > 0 && (
+              <span className="task-chevron" onClick={() => onOpenSheet(task.id)}>›</span>
+            )}
+          </div>
+        ) : (
+          // Desktop row: unchanged
+          <div
+            key={task.id}
+            className={`task-list-item ${selectedTaskId === task.id ? 'active' : ''} ${task.status === 'completed' ? 'completed' : ''}`}
+            onClick={() => onSelect(task)}
+          >
+            <div className="task-list-main">
+              <div className="task-list-header">
+                <div className="task-list-title">{task.title}</div>
+                {dirtyIds.has(task.id) && <span className="badge unsynced">Unsynced</span>}
+              </div>
+              {task.notes && <div className="task-list-notes">{task.notes}</div>}
             </div>
-            {task.notes && <div className="task-list-notes">{task.notes}</div>}
+            <div className="task-list-actions">
+              <button
+                className="secondary"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleComplete(task);
+                }}
+              >
+                {task.status === 'completed' ? 'Undo' : 'Complete'}
+              </button>
+              <button
+                className="secondary"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEditTask(task);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteTask(task);
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
-          <div className="task-list-actions">
-            <button
-              className="secondary"
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleComplete(task);
-              }}
-            >
-              {task.status === 'completed' ? 'Undo' : 'Complete'}
-            </button>
-            <button
-              className="secondary"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEditTask(task);
-              }}
-            >
-              Edit
-            </button>
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onDeleteTask(task);
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+        )
       ))}
     </div>
   );
@@ -672,6 +724,173 @@ const SubtaskPanel: React.FC<{
   );
 };
 
+const MobileTaskSheet: React.FC<{
+  task: TaskItem;
+  allTasks: TaskItem[];
+  onClose: () => void;
+  onEditTask: (task: TaskItem) => void;
+  onDeleteTask: (task: TaskItem) => void;
+  onToggleComplete: (task: TaskItem) => void;
+  onAddSubtask: (parentId: string) => void;
+  onExpand: () => void;
+  onRefine: () => void;
+  onSplit: () => void;
+  aiBusy: boolean;
+  aiProgress: string | null;
+  dirtyIds: Set<string>;
+}> = ({ task, onClose, onEditTask, onDeleteTask, onToggleComplete, onAddSubtask, onExpand, onRefine, onSplit, aiBusy, aiProgress, dirtyIds }) => {
+  return (
+    <>
+      <div className="sheet-backdrop" onClick={onClose} />
+      <div className="sheet-container" role="dialog" aria-modal="true">
+        <div className="sheet-handle" />
+        <div className="sheet-header">
+          <span className="sheet-title">{task.title}</span>
+          <button
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 15, fontWeight: 500, padding: '0 0 0 12px', minHeight: 44, cursor: 'pointer' }}
+            onClick={() => onEditTask(task)}
+          >
+            Edit
+          </button>
+        </div>
+        {(task.notes || task.due) && (
+          <div className="sheet-section">
+            {task.notes && <p style={{ margin: 0, fontSize: 14, color: 'var(--label-secondary)' }}>{task.notes}</p>}
+            {task.due && <p style={{ margin: task.notes ? '8px 0 0' : 0, fontSize: 13, color: 'var(--label-secondary)' }}>Due: {task.due.substring(0, 10)}</p>}
+          </div>
+        )}
+        <div className="sheet-section">
+          <div className="sheet-section-label">Subtasks</div>
+          {task.subtasks.length > 0 ? (
+            task.subtasks.map((sub) => (
+              <div key={sub.id} className="task-row-mobile" style={{ padding: '10px 0', gap: 12 }}>
+                <button
+                  className={`task-checkbox-mobile${sub.status === 'completed' ? ' completed' : ''}`}
+                  onClick={() => onToggleComplete(sub)}
+                  aria-label={sub.status === 'completed' ? 'Mark incomplete' : 'Mark complete'}
+                >
+                  {sub.status === 'completed' && '✓'}
+                </button>
+                <span className={`task-title-mobile${sub.status === 'completed' ? ' completed' : ''}`} style={{ fontSize: 15 }}>
+                  {sub.title}
+                  {dirtyIds.has(sub.id) && <span className="badge unsynced" style={{ marginLeft: 6 }}>Unsynced</span>}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--label-secondary)' }}>No subtasks yet</p>
+          )}
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--accent)', fontSize: 15, fontWeight: 500, padding: '10px 0 0', minHeight: 44, cursor: 'pointer' }}
+            onClick={() => onAddSubtask(task.id)}
+          >
+            + Add subtask
+          </button>
+        </div>
+        {aiBusy && (
+          <div className="sheet-ai-progress">
+            <span className="page-loading-spinner" />
+            <span>{aiProgress ?? 'Generating\u2026'}</span>
+          </div>
+        )}
+        <div className="sheet-ai-buttons">
+          <button className="sheet-ai-btn" onClick={onExpand} disabled={aiBusy}>
+            Expand
+          </button>
+          <button className="sheet-ai-btn" onClick={onRefine} disabled={aiBusy || task.subtasks.length === 0}>
+            Refine
+          </button>
+          <button className="sheet-ai-btn" onClick={onSplit} disabled={aiBusy || task.subtasks.length === 0}>
+            Split
+          </button>
+        </div>
+        <button className="sheet-delete-btn" onClick={() => onDeleteTask(task)}>
+          Delete task
+        </button>
+      </div>
+    </>
+  );
+};
+
+const MobileMenu: React.FC<{
+  isSignedIn: boolean;
+  userEmail: string | null;
+  hasPendingChanges: boolean;
+  pendingCount: number;
+  isSyncing: boolean;
+  aiBusy: boolean;
+  showCompleted: boolean;
+  onClose: () => void;
+  onSignIn: () => void;
+  onSignOut: () => void;
+  onOpenPreferences: () => void;
+  onToggleShowCompleted: () => void;
+  onRefreshLists: () => void;
+  onPushChanges: () => void;
+  onDiscardChanges: () => void;
+}> = ({
+  isSignedIn,
+  hasPendingChanges,
+  pendingCount,
+  isSyncing,
+  aiBusy,
+  showCompleted,
+  onClose,
+  onSignIn,
+  onSignOut,
+  onOpenPreferences,
+  onToggleShowCompleted,
+  onRefreshLists,
+  onPushChanges,
+  onDiscardChanges
+}) => {
+  return (
+    <>
+      <div className="sheet-backdrop" onClick={onClose} />
+      <div className="menu-sheet" role="dialog" aria-modal="true">
+        <div className="sheet-handle" />
+        <div className="menu-account">
+          <div className="menu-account-email">
+            {isSignedIn ? 'Google Account' : 'Not signed in'}
+          </div>
+          <div className="menu-account-status">
+            {isSignedIn ? 'Connected to Google Tasks' : 'Sign in to sync tasks'}
+          </div>
+        </div>
+        {isSignedIn ? (
+          <button className="menu-item" onClick={() => { onSignOut(); onClose(); }}>
+            Sign Out
+          </button>
+        ) : (
+          <button className="menu-item" onClick={() => { onSignIn(); onClose(); }}>
+            Sign In with Google
+          </button>
+        )}
+        <button className="menu-item" onClick={() => { onOpenPreferences(); onClose(); }}>
+          Preferences
+        </button>
+        <button className="menu-item" onClick={() => { onToggleShowCompleted(); onClose(); }}>
+          <span>{showCompleted ? '✓ Hide Completed' : 'Show Completed'}</span>
+        </button>
+        <button className="menu-item" onClick={() => { onRefreshLists(); onClose(); }} disabled={isSyncing || hasPendingChanges}>
+          Refresh Lists
+        </button>
+        {hasPendingChanges && (
+          <>
+            <button className="menu-item" onClick={() => { onPushChanges(); onClose(); }} disabled={aiBusy || isSyncing}>
+              Push Changes
+              <span className="badge unsynced">{pendingCount}</span>
+            </button>
+            <button className="menu-item" onClick={() => { onDiscardChanges(); onClose(); }} disabled={isSyncing} style={{ color: 'var(--destructive)' }}>
+              Discard Changes
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
+};
+
 const App: React.FC = () => {
   const service = useService();
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -696,6 +915,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiOptions, setAiOptions] = useState<AiGenerationOptions>({ length: 'short', style: 'simple' });
   const [deleteConfirmTask, setDeleteConfirmTask] = useState<TaskItem | null>(null);
+  const [pendingListSwitch, setPendingListSwitch] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<PreferencesDialogState>({
     open: false,
     openAiKey: '',
@@ -703,8 +923,20 @@ const App: React.FC = () => {
     context: ''
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sheetTaskId, setSheetTaskId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [autoSync, setAutoSync] = useState(() => {
+    const stored = localStorage.getItem('subtasker_autosync');
+    if (stored !== null) return stored === 'true';
+    return isIOS; // true on iOS by default, false on desktop
+  });
+  const pagesRef = useRef<HTMLDivElement>(null);
 
   const hasPendingChanges = pendingOperations.length > 0;
+
+  useEffect(() => {
+    localStorage.setItem('subtasker_autosync', autoSync ? 'true' : 'false');
+  }, [autoSync]);
 
   const dirtyIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1206,6 +1438,28 @@ const App: React.FC = () => {
     }
   };
 
+  // Keep a stable ref so the auto-push effect always reads the current value without stale closure.
+  const autoSyncRef = useRef(autoSync);
+  autoSyncRef.current = autoSync;
+  const isSyncingRef = useRef(isSyncing);
+  isSyncingRef.current = isSyncing;
+  const aiBusyRef = useRef(aiBusy);
+  aiBusyRef.current = aiBusy;
+
+  // Auto-push: fires after React commits new pendingOperations state.
+  // setTimeout(0) lets all synchronous queue* calls in a single event handler settle
+  // before the push so we send one batch, not one request per queued op.
+  useEffect(() => {
+    if (!autoSyncRef.current || pendingOperations.length === 0) return;
+    const timer = setTimeout(() => {
+      if (autoSyncRef.current && !isSyncingRef.current && !aiBusyRef.current) {
+        void handlePushChanges();
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingOperations]);
+
   const selectedListTitle = useMemo(() => lists.find((l) => l.id === selectedListId)?.title || '', [lists, selectedListId]);
   const visibleTasks = useMemo(
     () => tasks.filter((task) => showCompleted || task.status !== 'completed'),
@@ -1222,29 +1476,37 @@ const App: React.FC = () => {
 
   const toggleShowCompleted = () => setShowCompleted((prev) => !prev);
   const handleSelectTask = (task: TaskItem) => setSelectedTaskId(task.id);
-  const handleAddSubtask = () => {
-    if (!selectedTask) return;
-    setTaskDialog({ mode: 'create', parentId: selectedTask.id });
+  const handleAddSubtask = (parentId?: string) => {
+    const pid = parentId ?? selectedTask?.id;
+    if (!pid) return;
+    setTaskDialog({ mode: 'create', parentId: pid });
   };
-  const openExpandDialog = async () => {
-    if (!selectedTask) return;
-    setExpandDialog({ task: selectedTask, context: '', questions: FALLBACK_GUIDING_QUESTIONS, options: aiOptions });
+  const openExpandDialog = async (forTask?: TaskItem) => {
+    const target = forTask ?? selectedTask;
+    if (!target) return;
+    // On iOS the sheet sets selectedTaskId so SubtaskPanel stays in sync
+    if (forTask) setSelectedTaskId(forTask.id);
+    setExpandDialog({ task: target, context: '', questions: FALLBACK_GUIDING_QUESTIONS, options: aiOptions });
     try {
-      const generated = await service.getGuidingQuestions(selectedTask.title);
+      const generated = await service.getGuidingQuestions(target.title);
       setExpandDialog((prev) =>
-        prev && prev.task.id === selectedTask.id ? { ...prev, questions: generated } : prev
+        prev && prev.task.id === target.id ? { ...prev, questions: generated } : prev
       );
     } catch (error) {
       setStatus({ type: 'error', message: (error as Error).message });
     }
   };
-  const openRefineDialog = () => {
-    if (!selectedTask) return;
-    setRefineDialog({ task: selectedTask, feedback: '', options: aiOptions });
+  const openRefineDialog = (forTask?: TaskItem) => {
+    const target = forTask ?? selectedTask;
+    if (!target) return;
+    if (forTask) setSelectedTaskId(forTask.id);
+    setRefineDialog({ task: target, feedback: '', options: aiOptions });
   };
-  const openSplitDialog = () => {
-    if (!selectedTask || !selectedTask.subtasks.length) return;
-    setSplitDialog({ task: selectedTask, instructions: '', options: aiOptions });
+  const openSplitDialog = (forTask?: TaskItem) => {
+    const target = forTask ?? selectedTask;
+    if (!target || !target.subtasks.length) return;
+    if (forTask) setSelectedTaskId(forTask.id);
+    setSplitDialog({ task: target, instructions: '', options: aiOptions });
   };
   const handleEditSelectedTask = () => {
     if (!selectedTask) return;
@@ -1264,36 +1526,89 @@ const App: React.FC = () => {
   const handleSelectList = (id: string) => {
     setSidebarOpen(false);
     if (selectedListId === id) return;
-    const switchList = async () => {
-      if (hasPendingChanges) {
-        const confirmDiscard = window.confirm('Discard unsynced changes before switching lists?');
-        if (!confirmDiscard) {
-          return;
-        }
-        await discardLocalChanges({ suppressStatus: true, skipReload: true });
-        setExpandDialog(null);
-        setRefineDialog(null);
-        setSplitDialog(null);
-        setTaskDialog(null);
-        setTasks([]);
-        setSelectedTaskId(null);
-      }
-      setSelectedListId(id);
-    };
-    void switchList();
+    if (hasPendingChanges) {
+      setPendingListSwitch(id);
+      return;
+    }
+    setSelectedListId(id);
   };
+
+  const handleConfirmListSwitch = async () => {
+    const id = pendingListSwitch;
+    setPendingListSwitch(null);
+    if (!id) return;
+    await discardLocalChanges({ suppressStatus: true, skipReload: true });
+    setExpandDialog(null);
+    setRefineDialog(null);
+    setSplitDialog(null);
+    setTaskDialog(null);
+    setTasks([]);
+    setSelectedTaskId(null);
+    setSelectedListId(id);
+  };
+
+  const handlePageScroll = () => {
+    const el = pagesRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    const list = lists[idx];
+    if (list && list.id !== selectedListId) setSelectedListId(list.id);
+  };
+
+  // Use scrollend (fires after snap settles) so we don't update state mid-swipe.
+  // Falls back to the onScroll handler on older WebKit.
+  useEffect(() => {
+    const el = pagesRef.current;
+    if (!el || !isIOS) return;
+    el.addEventListener('scrollend', handlePageScroll);
+    return () => el.removeEventListener('scrollend', handlePageScroll);
+  });
+
+  useEffect(() => {
+    if (!pagesRef.current || !isIOS) return;
+    const idx = lists.findIndex((l) => l.id === selectedListId);
+    if (idx >= 0) {
+      pagesRef.current.scrollTo({ left: idx * pagesRef.current.clientWidth, behavior: 'smooth' });
+    }
+  }, [selectedListId, lists]);
 
   return (
     <div className="app-shell">
+      {isIOS && (
+        <nav className="mobile-nav">
+          <button className="mobile-nav-btn" onClick={() => setMenuOpen(true)}>···</button>
+          <span className="mobile-nav-title">
+            {lists.find((l) => l.id === selectedListId)?.title ?? 'Tasks'}
+          </span>
+          <div className="mobile-nav-right">
+            {!autoSync && pendingOperations.length > 0 && (
+              <span className="pending-badge">{pendingOperations.length}</span>
+            )}
+            <button className="mobile-nav-btn" onClick={() => setTaskDialog({ mode: 'create', parentId: null })}>+</button>
+          </div>
+        </nav>
+      )}
+      {isIOS && lists.length > 1 && (
+        <div className="page-dots">
+          {lists.map((l) => (
+            <div
+              key={l.id}
+              className={`page-dot${l.id === selectedListId ? ' active' : ''}`}
+            />
+          ))}
+        </div>
+      )}
       {/* Hamburger toggle — rendered in DOM always, visible only on mobile via CSS */}
-      <button
-        className="sidebar-toggle"
-        aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
-        <span>Subtasker</span>
-        <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
-      </button>
+      {!isIOS && (
+        <button
+          className="sidebar-toggle"
+          aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setSidebarOpen((prev) => !prev)}
+        >
+          <span>Subtasker</span>
+          <span className="sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
+        </button>
+      )}
       <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         <header>Subtasker</header>
         <p className="small">Extend Google Tasks with AI-powered micro-steps.</p>
@@ -1315,34 +1630,36 @@ const App: React.FC = () => {
       </aside>
       <main className="main-panel">
         <StatusBanner status={status} onClear={() => setStatus(null)} />
-        <div className="toolbar">
-          <button onClick={handleSignIn} disabled={!clientSecretLoaded || isSignedIn}>
-            {isSignedIn ? 'Signed In' : 'Sign In'}
-          </button>
-          <button className="secondary" onClick={handleSignOut} disabled={!isSignedIn}>
-            Sign Out
-          </button>
-          <button onClick={() => setTaskDialog({ mode: 'create', parentId: null })} disabled={!selectedListId}>
-            Add Task
-          </button>
-          <button className="secondary" onClick={openPreferences}>
-            Preferences
-          </button>
-          <button
-            className="secondary"
-            onClick={handleDiscardChanges}
-            disabled={!hasPendingChanges || isSyncing}
-          >
-            Discard Changes
-          </button>
-          <button
-            className="secondary"
-            onClick={handlePushChanges}
-            disabled={!hasPendingChanges || aiBusy || isSyncing}
-          >
-            Push Changes
-          </button>
-        </div>
+        {!isIOS && (
+          <div className="toolbar">
+            <button onClick={handleSignIn} disabled={!clientSecretLoaded || isSignedIn}>
+              {isSignedIn ? 'Signed In' : 'Sign In'}
+            </button>
+            <button className="secondary" onClick={handleSignOut} disabled={!isSignedIn}>
+              Sign Out
+            </button>
+            <button onClick={() => setTaskDialog({ mode: 'create', parentId: null })} disabled={!selectedListId}>
+              Add Task
+            </button>
+            <button className="secondary" onClick={openPreferences}>
+              Preferences
+            </button>
+            <button
+              className="secondary"
+              onClick={handleDiscardChanges}
+              disabled={!hasPendingChanges || isSyncing}
+            >
+              Discard Changes
+            </button>
+            <button
+              className="secondary"
+              onClick={handlePushChanges}
+              disabled={!hasPendingChanges || aiBusy || isSyncing}
+            >
+              Push Changes
+            </button>
+          </div>
+        )}
         {hasPendingChanges && (
           <div className="pending-indicator">
             {pendingOperations.length} change{pendingOperations.length === 1 ? '' : 's'} waiting to sync
@@ -1355,41 +1672,79 @@ const App: React.FC = () => {
           </button>
         </div>
         <div className="content-layout">
-          <section className="tasks-panel">
-            {isLoading ? (
-              <div className="empty-state">
-                <p>Loading tasks…</p>
-              </div>
-            ) : (
-              <TaskList
-                tasks={visibleTasks}
-                selectedTaskId={selectedTaskId}
-                onSelect={handleSelectTask}
-                onEditTask={(task) => setTaskDialog({ mode: 'edit', parentId: task.parentId || null, task })}
-                onDeleteTask={handleDeleteTask}
-                onToggleComplete={handleToggleComplete}
-                hasHiddenCompleted={hasHiddenCompleted}
-                dirtyIds={dirtyIds}
-              />
-            )}
-          </section>
-          <SubtaskPanel
-            task={selectedTask}
-            showCompleted={showCompleted}
-            onAddSubtask={handleAddSubtask}
-            onExpand={openExpandDialog}
-            onRefine={openRefineDialog}
-            onSplit={openSplitDialog}
-            onEditTask={handleEditSelectedTask}
-            onDeleteTask={handleDeleteSelectedTask}
-            onEditSubtask={handleEditSubtask}
-            onDeleteSubtask={handleDeleteSubtask}
-            aiProgress={aiProgress}
-            aiBusy={aiBusy}
-            aiTaskId={aiTaskId}
-            dirtyIds={dirtyIds}
-            syncing={isSyncing}
-          />
+          {isIOS ? (
+            <div
+              className="list-pages"
+              ref={pagesRef}
+            >
+              {lists.map((list) => {
+                const listVisibleTasks = list.id === selectedListId
+                  ? visibleTasks
+                  : [];
+                const listHasHiddenCompleted = list.id === selectedListId
+                  ? hasHiddenCompleted
+                  : false;
+                return (
+                  <div key={list.id} className="list-page">
+                    {isLoading && list.id === selectedListId ? (
+                      <div className="page-loading"><span className="page-loading-spinner" /></div>
+                    ) : (
+                      <TaskList
+                        tasks={listVisibleTasks}
+                        selectedTaskId={selectedTaskId}
+                        onSelect={handleSelectTask}
+                        onEditTask={(task) => setTaskDialog({ mode: 'edit', parentId: task.parentId || null, task })}
+                        onDeleteTask={handleDeleteTask}
+                        onToggleComplete={handleToggleComplete}
+                        hasHiddenCompleted={listHasHiddenCompleted}
+                        dirtyIds={dirtyIds}
+                        onOpenSheet={setSheetTaskId}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <section className="tasks-panel">
+              {isLoading ? (
+                <div className="empty-state">
+                  <p>Loading tasks…</p>
+                </div>
+              ) : (
+                <TaskList
+                  tasks={visibleTasks}
+                  selectedTaskId={selectedTaskId}
+                  onSelect={handleSelectTask}
+                  onEditTask={(task) => setTaskDialog({ mode: 'edit', parentId: task.parentId || null, task })}
+                  onDeleteTask={handleDeleteTask}
+                  onToggleComplete={handleToggleComplete}
+                  hasHiddenCompleted={hasHiddenCompleted}
+                  dirtyIds={dirtyIds}
+                  onOpenSheet={undefined}
+                />
+              )}
+            </section>
+          )}
+          {!isIOS && (
+            <SubtaskPanel
+              task={selectedTask}
+              showCompleted={showCompleted}
+              onAddSubtask={handleAddSubtask}
+              onExpand={openExpandDialog}
+              onRefine={openRefineDialog}
+              onSplit={openSplitDialog}
+              onEditTask={handleEditSelectedTask}
+              onDeleteTask={handleDeleteSelectedTask}
+              onEditSubtask={handleEditSubtask}
+              onDeleteSubtask={handleDeleteSubtask}
+              aiProgress={aiProgress}
+              aiBusy={aiBusy}
+              aiTaskId={aiTaskId}
+              dirtyIds={dirtyIds}
+              syncing={isSyncing}
+            />
+          )}
         </div>
       </main>
       <TaskDialog state={taskDialog} onClose={() => setTaskDialog(null)} onSubmit={handleCreateOrUpdateTask} />
@@ -1427,6 +1782,8 @@ const App: React.FC = () => {
         onClose={closePreferences}
         onLoadClientSecret={handleLoadSecret}
         clientSecretLoaded={clientSecretLoaded}
+        autoSync={autoSync}
+        onAutoSyncChange={setAutoSync}
       />
       {deleteConfirmTask && (
         <ConfirmDialog
@@ -1435,6 +1792,72 @@ const App: React.FC = () => {
           onCancel={() => setDeleteConfirmTask(null)}
         />
       )}
+      {pendingListSwitch && (
+        <ConfirmDialog
+          message={`Discard ${pendingOperations.length} unsynced change${pendingOperations.length === 1 ? '' : 's'}? This cannot be undone.`}
+          confirmLabel="Discard"
+          onConfirm={() => { void handleConfirmListSwitch(); }}
+          onCancel={() => setPendingListSwitch(null)}
+        />
+      )}
+      {isIOS && menuOpen && (
+        <MobileMenu
+          isSignedIn={isSignedIn}
+          userEmail={null}
+          hasPendingChanges={hasPendingChanges}
+          pendingCount={pendingOperations.length}
+          isSyncing={isSyncing}
+          aiBusy={aiBusy}
+          showCompleted={showCompleted}
+          onClose={() => setMenuOpen(false)}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
+          onOpenPreferences={openPreferences}
+          onToggleShowCompleted={() => setShowCompleted(v => !v)}
+          onRefreshLists={handleRefreshLists}
+          onPushChanges={handlePushChanges}
+          onDiscardChanges={handleDiscardChanges}
+        />
+      )}
+      {isIOS && sheetTaskId && (() => {
+        const sheetTask = findTaskById(tasks, sheetTaskId);
+        if (!sheetTask) return null;
+        return (
+          <MobileTaskSheet
+            task={sheetTask}
+            allTasks={tasks}
+            onClose={() => setSheetTaskId(null)}
+            onEditTask={(t) => {
+              setSheetTaskId(null);
+              setTaskDialog({ mode: 'edit', parentId: t.parentId || null, task: t });
+            }}
+            onDeleteTask={(t) => {
+              setSheetTaskId(null);
+              handleDeleteTask(t);
+            }}
+            onToggleComplete={handleToggleComplete}
+            onAddSubtask={(parentId) => {
+              setSheetTaskId(null);
+              setTaskDialog({ mode: 'create', parentId });
+            }}
+            onExpand={() => {
+              setSheetTaskId(null);
+              void openExpandDialog(sheetTask);
+            }}
+            onRefine={() => {
+              setSheetTaskId(null);
+              openRefineDialog(sheetTask);
+            }}
+            onSplit={() => {
+              setSheetTaskId(null);
+              openSplitDialog(sheetTask);
+            }}
+            aiBusy={aiBusy}
+            aiProgress={aiProgress}
+            dirtyIds={dirtyIds}
+          />
+        );
+      })()}
     </div>
   );
 };

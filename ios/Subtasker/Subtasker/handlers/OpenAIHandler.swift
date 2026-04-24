@@ -206,7 +206,7 @@ class OpenAIHandler {
         guard let questions = json["questions"] as? [String], !questions.isEmpty else {
             throw AIError.missingQuestions
         }
-        return Array(questions.prefix(5))
+        return Array(questions.prefix(3))
     }
 
     private func parseJSON(_ raw: String) throws -> [String: Any] {

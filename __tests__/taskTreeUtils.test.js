@@ -7,6 +7,7 @@ const {
   replaceSubtasks,
   updateParentTitle,
   findTaskById,
+  buildHierarchy,
 } = require('../packages/core/taskTree');
 
 function makeTask(overrides = {}) {
@@ -273,5 +274,221 @@ describe('findTaskById', () => {
     const result = findTaskById(tree, 'dup');
 
     expect(result?.title).toBe('First');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateTaskInTree — additional edge-case coverage
+// ---------------------------------------------------------------------------
+
+describe('updateTaskInTree — edge cases', () => {
+  it('should preserve the existing subtasks of an updated root node when task carries its own subtasks', () => {
+    const child = makeTask({ id: 'child' });
+    const tree = [makeTask({ id: 'root', title: 'Original', subtasks: [child] })];
+    const updated = makeTask({ id: 'root', title: 'Renamed', subtasks: [child] });
+
+    const result = updateTaskInTree(tree, updated);
+
+    expect(result[0].subtasks).toHaveLength(1);
+    expect(result[0].subtasks[0].id).toBe('child');
+  });
+
+  it('should return a new array reference (no mutation) even when ID is not found', () => {
+    const tree = [makeTask({ id: 'a' })];
+    const result = updateTaskInTree(tree, makeTask({ id: 'z', subtasks: [] }));
+
+    // Same logical content, different array identity
+    expect(result).not.toBe(tree);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// replaceSubtasks — additional edge-case coverage
+// ---------------------------------------------------------------------------
+
+describe('replaceSubtasks — edge cases', () => {
+  it('should not mutate the original tree', () => {
+    const originalChild = makeTask({ id: 'old' });
+    const tree = [makeTask({ id: 'parent', subtasks: [originalChild] })];
+
+    replaceSubtasks(tree, 'parent', [makeTask({ id: 'new' })]);
+
+    expect(tree[0].subtasks[0].id).toBe('old');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateParentTitle — additional edge-case coverage
+// ---------------------------------------------------------------------------
+
+describe('updateParentTitle — edge cases', () => {
+  it('should not mutate the original tree', () => {
+    const tree = [makeTask({ id: 'a', title: 'Original' })];
+
+    updateParentTitle(tree, 'a', 'Changed');
+
+    expect(tree[0].title).toBe('Original');
+  });
+
+  it('should return the tree structurally unchanged when the ID is not found', () => {
+    const tree = [makeTask({ id: 'a', title: 'Untouched' })];
+
+    const result = updateParentTitle(tree, 'ghost', 'New Title');
+
+    expect(result[0].title).toBe('Untouched');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildHierarchy
+// ---------------------------------------------------------------------------
+
+describe('buildHierarchy', () => {
+  it('should return an empty array when given an empty array', () => {
+    const result = buildHierarchy([]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return all tasks at the top level when none have a parentId', () => {
+    const items = [
+      makeTask({ id: 'a', parentId: null, title: 'A', position: '1' }),
+      makeTask({ id: 'b', parentId: null, title: 'B', position: '2' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    expect(result).toHaveLength(2);
+    const ids = result.map((t) => t.id);
+    expect(ids).toContain('a');
+    expect(ids).toContain('b');
+  });
+
+  it('should nest a child under its parent and exclude it from the root level', () => {
+    const items = [
+      makeTask({ id: 'parent', parentId: null, title: 'Parent', position: '1' }),
+      makeTask({ id: 'child', parentId: 'parent', title: 'Child', position: '1' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('parent');
+    expect(result[0].subtasks).toHaveLength(1);
+    expect(result[0].subtasks[0].id).toBe('child');
+  });
+
+  it('should support multiple levels of nesting (grandparent → parent → child)', () => {
+    const items = [
+      makeTask({ id: 'gp', parentId: null, title: 'Grandparent', position: '1' }),
+      makeTask({ id: 'p', parentId: 'gp', title: 'Parent', position: '1' }),
+      makeTask({ id: 'c', parentId: 'p', title: 'Child', position: '1' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    expect(result).toHaveLength(1);
+    const grandparent = result[0];
+    expect(grandparent.id).toBe('gp');
+    expect(grandparent.subtasks).toHaveLength(1);
+    const parent = grandparent.subtasks[0];
+    expect(parent.id).toBe('p');
+    expect(parent.subtasks).toHaveLength(1);
+    expect(parent.subtasks[0].id).toBe('c');
+  });
+
+  it('should treat an orphaned subtask (non-existent parentId) as a root task', () => {
+    const items = [
+      makeTask({ id: 'real', parentId: null, title: 'Real', position: '1' }),
+      makeTask({ id: 'orphan', parentId: 'does-not-exist', title: 'Orphan', position: '2' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    const ids = result.map((t) => t.id);
+    expect(ids).toContain('orphan');
+    // orphan should not be nested inside any other task
+    expect(result.find((t) => t.id === 'real').subtasks).toHaveLength(0);
+  });
+
+  it('should sort root tasks by position string (lexicographic ascending)', () => {
+    const items = [
+      makeTask({ id: 'c', parentId: null, title: 'C task', position: '00000000003' }),
+      makeTask({ id: 'a', parentId: null, title: 'A task', position: '00000000001' }),
+      makeTask({ id: 'b', parentId: null, title: 'B task', position: '00000000002' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    expect(result.map((t) => t.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('should fall back to title sort when position is absent from all items', () => {
+    const items = [
+      makeTask({ id: 'z', parentId: null, title: 'Zebra', position: null }),
+      makeTask({ id: 'a', parentId: null, title: 'Apple', position: null }),
+      makeTask({ id: 'm', parentId: null, title: 'Mango', position: null }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    expect(result.map((t) => t.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+  });
+
+  it('should fall back to title sort when either item in a comparison lacks position', () => {
+    // One task has a position, the other does not — the comparator treats this
+    // as the title-fallback branch (because !a.position || !b.position is true)
+    const items = [
+      makeTask({ id: 'with-pos', parentId: null, title: 'Zoo', position: '00000000001' }),
+      makeTask({ id: 'no-pos', parentId: null, title: 'Ant', position: null }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    // Ant < Zoo alphabetically, so Ant should come first
+    expect(result[0].id).toBe('no-pos');
+    expect(result[1].id).toBe('with-pos');
+  });
+
+  it('should sort subtasks recursively by position', () => {
+    const items = [
+      makeTask({ id: 'parent', parentId: null, title: 'Parent', position: '1' }),
+      makeTask({ id: 'sub-b', parentId: 'parent', title: 'Sub B', position: '00000000002' }),
+      makeTask({ id: 'sub-a', parentId: 'parent', title: 'Sub A', position: '00000000001' }),
+    ];
+
+    const result = buildHierarchy(items);
+
+    const subtasks = result[0].subtasks;
+    expect(subtasks.map((t) => t.id)).toEqual(['sub-a', 'sub-b']);
+  });
+
+  it('should not mutate the input array or its items', () => {
+    const items = [
+      makeTask({ id: 'b', parentId: null, title: 'B', position: '2' }),
+      makeTask({ id: 'a', parentId: null, title: 'A', position: '1' }),
+    ];
+    const originalOrder = items.map((t) => t.id);
+    const originalSubtasks = items.map((t) => t.subtasks);
+
+    buildHierarchy(items);
+
+    // Input array order unchanged
+    expect(items.map((t) => t.id)).toEqual(originalOrder);
+    // Input items' subtasks arrays unchanged
+    items.forEach((item, i) => {
+      expect(item.subtasks).toBe(originalSubtasks[i]);
+    });
+  });
+
+  it('should give each output node a fresh subtasks array (not sharing with input)', () => {
+    const child = makeTask({ id: 'child', parentId: 'parent', title: 'Child', position: '1' });
+    const parent = makeTask({ id: 'parent', parentId: null, title: 'Parent', position: '1' });
+    const items = [parent, child];
+
+    const result = buildHierarchy(items);
+
+    // The output parent's subtasks array should be a new one, not the input's
+    expect(result[0].subtasks).not.toBe(parent.subtasks);
+    expect(result[0].subtasks[0].id).toBe('child');
   });
 });

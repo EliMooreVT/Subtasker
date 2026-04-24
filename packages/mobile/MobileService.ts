@@ -1,5 +1,6 @@
 import type { SubtaskerService } from '../core/SubtaskerService';
 import type { AiGenerationOptions, PendingOperation, TaskItem } from '../core/types';
+import { buildHierarchy } from '../core/taskTree';
 
 /**
  * Implements SubtaskerService by forwarding calls over the WKWebView bridge
@@ -19,7 +20,10 @@ export class MobileService implements SubtaskerService {
   signIn() { return this.s.signIn(); }
   signOut() { return this.s.signOut(); }
   listTaskLists() { return this.s.listTaskLists(); }
-  listTasks(listId: string) { return this.s.listTasks(listId); }
+  async listTasks(listId: string): Promise<TaskItem[]> {
+    const flat = await this.s.listTasks(listId) as TaskItem[];
+    return buildHierarchy(flat);
+  }
   createTask(listId: string, payload: Parameters<typeof this.s.createTask>[1]) {
     return this.s.createTask(listId, payload);
   }

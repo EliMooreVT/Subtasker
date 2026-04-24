@@ -82,3 +82,29 @@ export function findTaskById(tree: TaskItem[], id: string): TaskItem | null {
   }
   return null;
 }
+
+export function buildHierarchy(items: TaskItem[]): TaskItem[] {
+  const byId = new Map<string, TaskItem>();
+  const roots: TaskItem[] = [];
+  items.forEach((item) => {
+    byId.set(item.id, { ...item, subtasks: [] });
+  });
+  items.forEach((item) => {
+    const current = byId.get(item.id)!;
+    if (item.parentId && byId.has(item.parentId)) {
+      byId.get(item.parentId)!.subtasks.push(current);
+    } else {
+      roots.push(current);
+    }
+  });
+  const sortTasks = (list: TaskItem[]) => {
+    list.sort((a, b) =>
+      !a.position || !b.position
+        ? (a.title || '').localeCompare(b.title || '')
+        : a.position.localeCompare(b.position)
+    );
+    list.forEach((t) => sortTasks(t.subtasks));
+  };
+  sortTasks(roots);
+  return roots;
+}

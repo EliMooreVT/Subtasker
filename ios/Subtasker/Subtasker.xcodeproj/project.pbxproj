@@ -8,11 +8,24 @@
 
 /* Begin PBXBuildFile section */
 		848214452F8F1BB100260FB6 /* dist in Resources */ = {isa = PBXBuildFile; fileRef = 848214442F8F1BB100260FB6 /* dist */; };
+		AA000006000000000000000A /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000005000000000000000A /* XCTest.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AA00000B000000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 848214082F8F025100260FB6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8482140F2F8F025100260FB6;
+			remoteInfo = Subtasker;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		848214102F8F025100260FB6 /* Subtasker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Subtasker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		848214442F8F1BB100260FB6 /* dist */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dist; path = ../../dist; sourceTree = "<group>"; };
+		AA000005000000000000000A /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		AA0000FF000000000000000A /* SubtaskerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SubtaskerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -34,6 +47,11 @@
 			path = Subtasker;
 			sourceTree = "<group>";
 		};
+		AA000002000000000000000A /* SubtaskerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SubtaskerTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +59,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA000004000000000000000A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000006000000000000000A /* XCTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,7 +78,9 @@
 			children = (
 				848214442F8F1BB100260FB6 /* dist */,
 				848214122F8F025100260FB6 /* Subtasker */,
+				AA000002000000000000000A /* SubtaskerTests */,
 				848214112F8F025100260FB6 /* Products */,
+				AA000010000000000000000A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -60,8 +88,17 @@
 			isa = PBXGroup;
 			children = (
 				848214102F8F025100260FB6 /* Subtasker.app */,
+				AA0000FF000000000000000A /* SubtaskerTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AA000010000000000000000A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AA000005000000000000000A /* XCTest.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -89,6 +126,28 @@
 			productReference = 848214102F8F025100260FB6 /* Subtasker.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA000001000000000000000A /* SubtaskerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA000009000000000000000A /* Build configuration list for PBXNativeTarget "SubtaskerTests" */;
+			buildPhases = (
+				AA000003000000000000000A /* Sources */,
+				AA000004000000000000000A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA00000A000000000000000A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA000002000000000000000A /* SubtaskerTests */,
+			);
+			name = SubtaskerTests;
+			packageProductDependencies = (
+			);
+			productName = SubtaskerTests;
+			productReference = AA0000FF000000000000000A /* SubtaskerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -101,6 +160,10 @@
 				TargetAttributes = {
 					8482140F2F8F025100260FB6 = {
 						CreatedOnToolsVersion = 26.4;
+					};
+					AA000001000000000000000A = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = 8482140F2F8F025100260FB6;
 					};
 				};
 			};
@@ -119,6 +182,7 @@
 			projectRoot = "";
 			targets = (
 				8482140F2F8F025100260FB6 /* Subtasker */,
+				AA000001000000000000000A /* SubtaskerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -142,7 +206,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000003000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA00000A000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8482140F2F8F025100260FB6 /* Subtasker */;
+			targetProxy = AA00000B000000000000000A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		848214242F8F025200260FB6 /* Debug */ = {
@@ -152,6 +231,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5TA877KL94;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Subtasker/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -183,6 +263,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5TA877KL94;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Subtasker/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -326,6 +407,54 @@
 			};
 			name = Release;
 		};
+		AA000007000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5TA877KL94;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.subtasker.SubtaskerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Subtasker.app/Subtasker";
+			};
+			name = Debug;
+		};
+		AA000008000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5TA877KL94;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.subtasker.SubtaskerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Subtasker.app/Subtasker";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -343,6 +472,15 @@
 			buildConfigurations = (
 				848214242F8F025200260FB6 /* Debug */,
 				848214252F8F025200260FB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA000009000000000000000A /* Build configuration list for PBXNativeTarget "SubtaskerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000007000000000000000A /* Debug */,
+				AA000008000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
